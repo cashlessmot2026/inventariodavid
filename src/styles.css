@@ -1,0 +1,74 @@
+:root {
+  --bg: #ffffff;
+  --soft: #eaf5fd;
+  --blue: #7cc4f2;
+  --blue-d: #3a9fdc;
+  --ink: #0b0f14;
+  --muted: #5b6b78;
+  --line: #d5e6f2;
+  --ok: #1f9d6b;
+  --warn: #d98a00;
+  --bad: #d23b3b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
+.app { max-width: 720px; margin: 0 auto; padding: 0 12px 84px; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 6px; }
+h1 { margin: 0; font-size: 22px; }
+h2 { margin: 12px 0; font-size: 19px; }
+h3 { margin: 0 0 8px; font-size: 16px; }
+main { padding-top: 4px; }
+
+nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--ink); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+nav button { flex: 1; max-width: 120px; background: none; border: 0; color: #cfe3f1; padding: 14px 2px; font-size: 12.5px; }
+nav button.active { color: var(--ink); background: var(--blue); font-weight: 700; }
+
+.card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
+.ok-card { background: var(--soft); border-color: var(--blue); }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > input, .row > select { flex: 1; min-width: 0; }
+.between { justify-content: space-between; }
+.mt { margin-top: 10px; }
+.muted { color: var(--muted); font-size: 13px; }
+.err { color: var(--bad); margin: 6px 0 0; }
+.line { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.stock { font-size: 22px; font-weight: 700; text-align: right; }
+.stock small { font-size: 12px; font-weight: 400; color: var(--muted); }
+
+input, select { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: #fff; color: var(--ink); }
+input:focus, select:focus { outline: 2px solid var(--blue); border-color: var(--blue); }
+label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+.btn { border: 1px solid var(--ink); background: #fff; color: var(--ink); padding: 10px 14px; border-radius: 8px; font: inherit; cursor: pointer; white-space: nowrap; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--ink); font-weight: 600; }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+.btn.sm { padding: 6px 10px; font-size: 13px; }
+.btn.block { width: 100%; }
+.btn:disabled { opacity: 0.5; }
+
+.tbl { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+.tbl th { text-align: left; font-size: 12px; color: var(--muted); padding: 4px; }
+.tbl td { padding: 5px 4px; border-top: 1px solid var(--line); }
+.tbl td input { padding: 6px; }
+.tbl tr.hl { background: var(--soft); }
+
+.pill { padding: 2px 8px; border-radius: 99px; font-size: 12.5px; white-space: nowrap; }
+.pill.ok { background: #e3f6ee; color: var(--ok); }
+.pill.warn { background: #fff1d6; color: var(--warn); }
+.pill.bad { background: #fde4e4; color: var(--bad); }
+.pill-in.warn { border-color: var(--warn); }
+.pill-in.bad { border-color: var(--bad); }
+
+.alert { padding: 10px 12px; border-radius: 10px; margin: 8px 0; font-size: 14px; }
+.alert.warn { background: #fff1d6; color: #7a4d00; cursor: pointer; }
+.alert.bad { background: #fde4e4; color: var(--bad); }
+
+.space { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.bars .bar { display: grid; grid-template-columns: 90px 1fr 50px; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+.bl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt { background: var(--soft); border-radius: 6px; height: 14px; }
+.bf { background: var(--blue-d); height: 100%; border-radius: 6px; }
+.bv { text-align: right; font-weight: 600; }
+
+.toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 99px; z-index: 10; max-width: 90vw; font-size: 14px; }
+code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
