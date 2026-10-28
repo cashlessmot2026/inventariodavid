@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase.js'
+import { isIOS, isStandalone } from './utils.js'
 import { expiringBatches, notifyExpiring } from './notify.js'
 import Exit from './components/Exit.jsx'
 import Inventory from './components/Inventory.jsx'
@@ -23,6 +24,8 @@ export default function App() {
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [installEvt, setInstallEvt] = useState(null)
+  const [pendingTag, setPendingTag] = useState(() => new URLSearchParams(location.search).get('tag'))
+  const [iosHint, setIosHint] = useState(() => isIOS() && !isStandalone())
 
   const say = useCallback((m) => {
     setToast(m)
@@ -73,7 +76,12 @@ export default function App() {
     setInstallEvt(null)
   }
 
-  const props = { ...data, load, say, expiring }
+  const clearTag = useCallback(() => {
+    setPendingTag(null)
+    history.replaceState(null, '', location.pathname)
+  }, [])
+
+  const props = { ...data, load, say, expiring, pendingTag, clearTag }
 
   return (
     <div className="app">
@@ -85,6 +93,11 @@ export default function App() {
           </button>
         )}
       </header>
+      {iosHint && (
+        <div className="alert info" onClick={() => setIosHint(false)}>
+          Para instalar en iPhone/iPad: toca <b>Compartir</b> ⬆ y luego <b>Añadir a pantalla de inicio</b>. (toca para cerrar)
+        </div>
+      )}
       {error && (
         <div className="alert bad">
           Error de base de datos: {error}. ¿Ejecutaste <code>supabase/schema.sql</code>?

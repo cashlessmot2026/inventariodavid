@@ -59,11 +59,28 @@ export function receiptCanvas(mov, items) {
 
 const fileName = (mov) => `salida-${(mov.invoice || mov.id.slice(0, 6)).replace(/\W+/g, '_')}`
 
-export function downloadPng(mov, items) {
+// En móviles (iOS/Android) abre el menú Compartir; si no, descarga el archivo
+async function deliver(blob, name) {
+  const file = new File([blob], name, { type: blob.type })
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: name })
+      return
+    } catch (e) {
+      if (e.name === 'AbortError') return
+    }
+  }
   const a = document.createElement('a')
-  a.href = receiptCanvas(mov, items).toDataURL('image/png')
-  a.download = fileName(mov) + '.png'
+  a.href = URL.createObjectURL(blob)
+  a.download = name
+  document.body.appendChild(a)
   a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000)
+}
+
+export function downloadPng(mov, items) {
+  receiptCanvas(mov, items).toBlob((b) => deliver(b, fileName(mov) + '.png'), 'image/png')
 }
 
 export function downloadPdf(mov, items) {
@@ -71,5 +88,5 @@ export function downloadPdf(mov, items) {
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
   const pw = pdf.internal.pageSize.getWidth() - 60
   pdf.addImage(c.toDataURL('image/png'), 'PNG', 30, 30, pw, (c.height / c.width) * pw)
-  pdf.save(fileName(mov) + '.pdf')
+  deliver(pdf.output('blob'), fileName(mov) + '.pdf')
 }

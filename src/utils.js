@@ -45,7 +45,15 @@ export async function startNfc(onCode, onError) {
   try {
     const reader = new window.NDEFReader()
     await reader.scan({ signal: ctrl.signal })
-    reader.onreading = (e) => onCode(e.serialNumber)
+    reader.onreading = (e) => {
+      let code = e.serialNumber
+      for (const r of e.message?.records || []) {
+        if (r.recordType !== 'url' && r.recordType !== 'text') continue
+        const m = new TextDecoder().decode(r.data).match(/[?&]tag=([^&\s]+)/)
+        if (m) code = decodeURIComponent(m[1])
+      }
+      onCode(code)
+    }
     reader.onreadingerror = () => onError?.('No se pudo leer el tag')
   } catch (err) {
     onError?.(err.message || 'NFC no disponible')
@@ -53,4 +61,15 @@ export async function startNfc(onCode, onError) {
   return () => ctrl.abort()
 }
 
-export const monthName = (m) => m
+// Escribe en el tag un enlace a la app con el código (lo abre cualquier iPhone/Android al acercarlo)
+export async function writeNfcUrl(url) {
+  await new window.NDEFReader().write({ records: [{ recordType: 'url', data: url }] })
+}
+
+export const tagUrl = (code) =>
+  `${location.origin}${import.meta.env.BASE_URL}?tag=${encodeURIComponent(code)}`
+
+export const isIOS = () =>
+  /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+export const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true

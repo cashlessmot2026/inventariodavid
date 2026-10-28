@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../supabase.js'
 import { expiryClass, fmtDate, num, today } from '../utils.js'
 import NfcButton from './NfcButton.jsx'
+import { nfcSupported, tagUrl, writeNfcUrl } from '../utils.js'
 
 const UNITS = ['unidades', 'ml', 'mg', 'g', 'tabletas', 'cápsulas', 'ampollas', 'frascos', 'cajas']
 const EMPTY = { name: '', unit: 'unidades', nfc_code: '', shelf_id: '', space: '', notes: '' }
@@ -96,6 +97,24 @@ export default function Inventory({ products, batches, shelves, settings, load, 
             <input placeholder="Código NFC" value={form.nfc_code || ''} onChange={(e) => setForm({ ...form, nfc_code: e.target.value })} />
             <NfcButton label="Leer tag" onCode={(c) => setForm((f) => ({ ...f, nfc_code: c }))} say={say} />
           </div>
+          <button
+            type="button"
+            className="btn mt block"
+            onClick={async () => {
+              if (!nfcSupported()) return say('Escribir tags requiere Chrome en Android')
+              const code = form.nfc_code?.trim() || Math.random().toString(36).slice(2, 10)
+              setForm((f) => ({ ...f, nfc_code: code }))
+              say('Acerca el tag para escribirlo…')
+              try {
+                await writeNfcUrl(tagUrl(code))
+                say('Tag escrito ✔ (funciona en iPhone y Android). Guarda el producto.')
+              } catch (e) {
+                say('No se pudo escribir: ' + e.message)
+              }
+            }}
+          >
+            ✍ Escribir enlace en el tag (para iPhone)
+          </button>
           <div className="row mt">
             <select value={form.shelf_id || ''} onChange={(e) => setForm({ ...form, shelf_id: e.target.value, space: '' })}>
               <option value="">Sin estantería</option>

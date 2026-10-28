@@ -13,7 +13,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
 .app { max-width: 720px; margin: 0 auto; padding: 0 12px 84px; }
-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 6px; }
+header { display: flex; justify-content: space-between; align-items: center; padding: calc(14px + env(safe-area-inset-top)) 0 6px; }
 h1 { margin: 0; font-size: 22px; }
 h2 { margin: 12px 0; font-size: 19px; }
 h3 { margin: 0 0 8px; font-size: 16px; }
@@ -61,6 +61,7 @@ label { font-size: 13px; color: var(--muted); white-space: nowrap; }
 
 .alert { padding: 10px 12px; border-radius: 10px; margin: 8px 0; font-size: 14px; }
 .alert.warn { background: #fff1d6; color: #7a4d00; cursor: pointer; }
+.alert.info { background: var(--soft); color: var(--ink); }
 .alert.bad { background: #fde4e4; color: var(--bad); }
 
 .space { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }

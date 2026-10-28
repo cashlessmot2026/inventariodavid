@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabase.js'
 import { askPermission, notifSupported } from '../notify.js'
-import { nfcSupported } from '../utils.js'
+import { isIOS, isStandalone, nfcSupported } from '../utils.js'
 
 export default function Settings({ settings, load, say }) {
   const [months, setMonths] = useState(settings.alert_months)
@@ -42,10 +42,17 @@ export default function Settings({ settings, load, say }) {
             Activar notificaciones
           </button>
         )}
+        {isIOS() && !isStandalone() && <p className="err">En iPhone las notificaciones solo funcionan con la app instalada (Compartir → Añadir a pantalla de inicio, iOS 16.4+).</p>}
         <p className="muted mt">Se envía un aviso diario con los lotes por vencer cuando la app está abierta o instalada.</p>
       </div>
       <div className="card">
         <h3>NFC</h3>
+        {isIOS() && (
+          <p className="muted">
+            iPhone: el navegador no puede leer NFC dentro de la app. Acerca el teléfono al tag (escrito desde un Android con
+            «Escribir enlace en el tag»): se abre el enlace y suma 1 unidad a la salida.
+          </p>
+        )}
         <p className="muted">{nfcSupported() ? 'Este dispositivo soporta lectura NFC (Web NFC).' : 'Este dispositivo/navegador no soporta Web NFC (usa Chrome en Android). Puedes escribir el código manualmente o usar un lector USB.'}</p>
       </div>
     </section>

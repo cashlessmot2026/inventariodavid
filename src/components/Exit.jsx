@@ -1,11 +1,17 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabase.js'
 import { allocateFefo, fmtDate, expiryClass, num, sortedBatches } from '../utils.js'
 import { downloadPdf, downloadPng } from '../receipt.js'
 import NfcButton from './NfcButton.jsx'
 
-export default function Exit({ products, batches, settings, load, say }) {
-  const [lines, setLines] = useState([]) // { productId, qty }
+export default function Exit({ products, batches, settings, load, say, pendingTag, clearTag }) {
+  const [lines, setLines] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cart') || '[]')
+    } catch {
+      return []
+    }
+  }) // { productId, qty }
   const [invoice, setInvoice] = useState('')
   const [customer, setCustomer] = useState('')
   const [notes, setNotes] = useState('')
@@ -38,7 +44,21 @@ export default function Exit({ products, batches, settings, load, say }) {
     setManual('')
   }
 
-  const plan = lines.map((l) => ({ ...l, p: byId[l.productId], ...allocateFefo(batchesOf(l.productId), l.qty) }))
+  useEffect(() => {
+    try {
+      localStorage.setItem('cart', JSON.stringify(lines))
+    } catch {}
+  }, [lines])
+
+  // Tag abierto por enlace (iPhone): suma 1 unidad cuando ya cargó el catálogo
+  useEffect(() => {
+    if (pendingTag && products.length) {
+      onCode(pendingTag)
+      clearTag()
+    }
+  }, [pendingTag, products])
+
+  const plan = lines.filter((l) => byId[l.productId]).map((l) => ({ ...l, p: byId[l.productId], ...allocateFefo(batchesOf(l.productId), l.qty) }))
   const invalid = plan.some((x) => x.missing > 0 || !(Number(x.qty) > 0))
 
   const confirm = async () => {
