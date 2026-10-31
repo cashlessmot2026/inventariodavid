@@ -99,3 +99,31 @@ do $$ declare t text; begin
   end loop;
 end $$;
 grant execute on function register_exit(text,text,text,jsonb) to anon;
+
+-- ===== Entradas (ejecutar también; es idempotente) =====
+alter table movements add column if not exists type text not null default 'out'; -- 'out' salida, 'in' entrada
+create index if not exists movements_created_idx on movements(created_at);
+
+-- Entrada atómica: suma al lote (o lo crea) y registra el movimiento
+create or replace function register_entry(
+  p_product uuid, p_lot text, p_expiry date, p_qty numeric, p_invoice text, p_supplier text, p_notes text
+) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  v_mov uuid; v_batch uuid; p products%rowtype;
+begin
+  if p_qty is null or p_qty <= 0 then raise exception 'Cantidad inválida'; end if;
+  select * into p from products where id = p_product;
+  if not found then raise exception 'Producto no encontrado'; end if;
+  select id into v_batch from batches where product_id = p_product and lot = p_lot and expiry = p_expiry for update;
+  if v_batch is null then
+    insert into batches (product_id, lot, expiry, qty) values (p_product, p_lot, p_expiry, p_qty) returning id into v_batch;
+  else
+    update batches set qty = qty + p_qty where id = v_batch;
+  end if;
+  insert into movements (type, invoice, customer, notes) values ('in', p_invoice, p_supplier, p_notes) returning id into v_mov;
+  insert into movement_items (movement_id, product_id, batch_id, product_name, unit, lot, expiry, qty)
+    values (v_mov, p.id, v_batch, p.name, p.unit, p_lot, p_expiry, p_qty);
+  return v_mov;
+end $$;
+grant execute on function register_entry(uuid,text,date,numeric,text,text,text) to anon;

@@ -11,7 +11,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null) // producto en edición/creación
   const [open, setOpen] = useState(null) // producto con lotes desplegados
-  const [nb, setNb] = useState({ lot: '', expiry: '', qty: '' })
+  const [nb, setNb] = useState({ lot: '', expiry: '', qty: '', invoice: '', supplier: '' })
 
   const shelfName = (id) => shelves.find((s) => s.id === id)?.name
   const location = (p) => (p.shelf_id ? `${shelfName(p.shelf_id)} · espacio ${p.space ?? '?'}` : 'Sin ubicación')
@@ -49,11 +49,17 @@ export default function Inventory({ products, batches, shelves, settings, load, 
 
   const addBatch = async (pid) => {
     if (!nb.lot.trim() || !nb.expiry || !(Number(nb.qty) > 0)) return say('Completa lote, vencimiento y cantidad')
-    const { error } = await supabase
-      .from('batches')
-      .insert({ product_id: pid, lot: nb.lot.trim(), expiry: nb.expiry, qty: Number(nb.qty) })
+    const { error } = await supabase.rpc('register_entry', {
+      p_product: pid,
+      p_lot: nb.lot.trim(),
+      p_expiry: nb.expiry,
+      p_qty: Number(nb.qty),
+      p_invoice: nb.invoice.trim() || null,
+      p_supplier: nb.supplier.trim() || null,
+      p_notes: null
+    })
     if (error) return say(error.message)
-    setNb({ lot: '', expiry: '', qty: '' })
+    setNb({ lot: '', expiry: '', qty: '', invoice: '', supplier: '' })
     load()
   }
 
@@ -115,7 +121,8 @@ export default function Inventory({ products, batches, shelves, settings, load, 
           >
             ✍ Escribir enlace en el tag (para iPhone)
           </button>
-          <div className="row mt">
+          <label className="muted mt" style={{ display: 'block' }}>📍 Ubicación del producto (editable)</label>
+          <div className="row">
             <select value={form.shelf_id || ''} onChange={(e) => setForm({ ...form, shelf_id: e.target.value, space: '' })}>
               <option value="">Sin estantería</option>
               {shelves.map((s) => (
@@ -207,8 +214,12 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                   <input placeholder="Lote" value={nb.lot} onChange={(e) => setNb({ ...nb, lot: e.target.value })} />
                   <input type="date" min={today()} value={nb.expiry} onChange={(e) => setNb({ ...nb, expiry: e.target.value })} />
                   <input type="number" step="any" placeholder="Cant." value={nb.qty} onChange={(e) => setNb({ ...nb, qty: e.target.value })} />
+                </div>
+                <div className="row mt">
+                  <input placeholder="Factura entrada (opcional)" value={nb.invoice} onChange={(e) => setNb({ ...nb, invoice: e.target.value })} />
+                  <input placeholder="Proveedor (opcional)" value={nb.supplier} onChange={(e) => setNb({ ...nb, supplier: e.target.value })} />
                   <button className="btn primary" onClick={() => addBatch(p.id)}>
-                    + Lote
+                    + Entrada de lote
                   </button>
                 </div>
                 <div className="row mt">

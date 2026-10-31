@@ -16,7 +16,7 @@ export function receiptCanvas(mov, items) {
   g.fillRect(0, 0, w, 90)
   g.fillStyle = '#7cc4f2'
   g.font = 'bold 30px sans-serif'
-  g.fillText('Salida de inventario', 30, 56)
+  g.fillText(mov.type === 'in' ? 'Entrada de inventario' : 'Salida de inventario', 30, 56)
   g.fillStyle = '#0b0f14'
   g.font = '22px sans-serif'
   let y = 140
@@ -28,7 +28,7 @@ export function receiptCanvas(mov, items) {
     y += 36
   }
   line('Factura:', mov.invoice)
-  line('Cliente:', mov.customer)
+  line(mov.type === 'in' ? 'Proveedor:' : 'Cliente:', mov.customer)
   line('Fecha:', fmtDateTime(mov.created_at))
   if (mov.notes) line('Notas:', mov.notes)
   y += 10
@@ -57,10 +57,10 @@ export function receiptCanvas(mov, items) {
   return c
 }
 
-const fileName = (mov) => `salida-${(mov.invoice || mov.id.slice(0, 6)).replace(/\W+/g, '_')}`
+const fileName = (mov) => `${mov.type === 'in' ? 'entrada' : 'salida'}-${(mov.invoice || mov.id.slice(0, 6)).replace(/\W+/g, '_')}`
 
 // En móviles (iOS/Android) abre el menú Compartir; si no, descarga el archivo
-async function deliver(blob, name) {
+export async function deliver(blob, name) {
   const file = new File([blob], name, { type: blob.type })
   if (navigator.canShare?.({ files: [file] })) {
     try {
