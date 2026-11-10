@@ -46,17 +46,26 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
   - Número consecutivo de salida (`movements.number`, `supabase/actualizacion_v5.sql`); aparece en el comprobante y en Historial.
   - Admin: la pestaña Inventario ahora se llama **Productos**; el precio se muestra siempre («Sin precio» si falta), es la primera casilla del formulario y se puede cambiar rápido al abrir la tarjeta del producto.
 
+## Estado al cierre de la sesión del 2026-11-09
+- Todo está subido a `main` y publicado (último commit de código: `9e0c5fe`; los despliegues de GitHub Actions terminaron en éxito).
+- Supabase: la **v3 ya está ejecutada** y **ya existe una contraseña de admin** (comprobado consultando la base). El usuario del admin es `admin`. La contraseña no se anota aquí porque el repo es público; se cambia en Ajustes → Administrador.
+- La base tiene 97 productos, todos sin categoría/marca/referencia y sin precio; 43 con stock en 8 o menos.
+- Las últimas 10 salidas del 2026-11-09 son «Factura 0», sin cliente y de 1 unidad: parecen pruebas, pero descontaron stock real.
+- Revisado en navegador (copia compilada en carpeta temporal, con los datos reales): vista pública de Inventario, pestaña Salida con las últimas 10 salidas, y el diseño del panel admin. **No probado:** iniciar sesión, guardar productos/precios, escribir en el buscador de salidas, notificaciones y voz en un teléfono.
+
 ## Pendiente / siguiente
-00. **Ejecutar `supabase/actualizacion_v5.sql`** para tener número de salida. (La v3 ya está ejecutada y ya existe contraseña de admin, verificado el 2026-11-09.)
-0. **Ejecutar `supabase/actualizacion_v4.sql`** (después de la v3) para poder guardar categoría, marca y referencia.
-1. **Ejecutar `supabase/actualizacion_v3.sql` en Supabase → SQL Editor** (lo hace el usuario). Sin esto no se puede desbloquear la edición. (`supabase/schema.sql` contiene todo, para una instalación desde cero.)
-2. Probar la app en un Android y un iPhone reales; nada se ha probado en uso (solo se verificó que el build de GitHub Actions termina en éxito).
-3. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
-4. Seguridad: editar exige contraseña de admin; ver datos y registrar salidas sigue abierto a quien tenga el enlace.
-5. Ideas: editar/anular salidas, exportar a Excel, stock mínimo distinto por producto.
+1. **Ejecutar `supabase/actualizacion_v4.sql`** en Supabase → SQL Editor (lo hace el usuario): categoría, marca y referencia. Sin esto, guardar un producto con esos campos da error.
+2. **Ejecutar `supabase/actualizacion_v5.sql`**: número consecutivo de salida. Sin esto el buscador funciona por factura, cliente y fecha, pero no por número. (`supabase/schema.sql` contiene todo, para una instalación desde cero.)
+3. Cargar precio, categoría, marca y referencia de los productos desde el admin (pestaña Productos).
+4. Probar la app en un Android y un iPhone reales: login de admin, guardar cambios, avisos de stock bajo y voz.
+5. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
+6. Seguridad: editar exige contraseña de admin, pero ver datos y registrar salidas sigue abierto a quien tenga el enlace; la página pública muestra clientes y facturas de las salidas. Conviene usar una contraseña de admin más fuerte.
+7. Ideas: editar/anular salidas (serviría para borrar las de prueba), exportar a Excel, stock mínimo distinto por producto.
 
 ## Notas técnicas
-- Archivos clave: `src/App.jsx` (estado y tabs), `src/components/*` (pestañas), `src/utils.js` (FEFO, NFC, fechas), `src/receipt.js` (PDF/PNG), `src/notify.js` (alertas), `vite.config.js` (manifest PWA, base `/inventariodavid/`).
+- Archivos clave: `src/App.jsx` (estado, modo público/admin y tabs), `src/components/*` (pestañas; `Stock.jsx` vista pública, `Inventory.jsx` productos del admin, `RecentExits.jsx` buscador de salidas, `Unlock.jsx` login), `src/utils.js` (FEFO, NFC, fechas), `src/receipt.js` (PDF/PNG), `src/notify.js` (alertas), `vite.config.js` (manifest PWA, base `/inventariodavid/`).
 - Iconos PNG generados con un script Node (192 y 512) en `public/`.
-- En esta sesión el shell Bash falló al recibir heredocs largos con comillas; se resolvió usando la herramienta Write y ejecutando el script.
-- Git: usuario con sesión `gh` de `cashlessmot2026`; commits con `Co-Authored-By: Claude Sonnet 5.5`.
+- En esta sesión el shell Bash falló al recibir heredocs largos con comillas; se resolvió usando la herramienta Write y ejecutando el script. Tampoco usar `node -e "..."` con comillas invertidas dentro: bash las ejecuta.
+- Git: usuario con sesión `gh` de `cashlessmot2026`; commits con `Co-Authored-By` de Claude.
+- Para revisar el diseño sin tocar el proyecto: copiar a una carpeta temporal, `npm install`, `vite build` y `vite preview` allí (el proyecto no tiene `node_modules`).
+- No escribir contraseñas en ningún archivo del repo: es público.
