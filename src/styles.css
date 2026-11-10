@@ -193,3 +193,34 @@ code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
 .price.none { color: var(--muted); font-weight: 500; font-size: 12.5px; }
 .chip.num { background: var(--ink); color: #fff; margin-right: 4px; }
 .exits { margin-top: 28px; padding-top: 6px; border-top: 2px dashed var(--line); }
+
+/* ===== Ticket de salida ===== */
+.ticket, .stub { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace; font-size: 13.5px; color: #111; background: #fffdf8; }
+.ticket { position: relative; padding: 20px 18px 14px; border-radius: 6px 6px 0 0; box-shadow: var(--sh); }
+.ticket::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -9px; height: 10px;
+  background: radial-gradient(circle at 50% 100%, transparent 5px, #fffdf8 5.5px) 0 0 / 14px 10px repeat-x;
+}
+.tk-head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.tk-head b { font-size: 17px; letter-spacing: 1.5px; }
+.tk-head span { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.tk-logo { font-size: 26px; }
+.tk-num { text-align: center; font-size: 20px; font-weight: 800; letter-spacing: 2px; margin-top: 8px; }
+.tk-sep { border-top: 1.5px dashed #9aa5ae; margin: 10px 0; }
+.tk-row { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.tk-row > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.tk-row > :last-child { text-align: right; flex: 0 0 auto; max-width: 62%; overflow-wrap: anywhere; }
+.tk-th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 1px; color: #59636b; }
+.tk-item { padding: 4px 0; }
+.ticket small, .stub small { display: block; color: #59636b; font-size: 12px; }
+.tk-foot { text-align: center; margin-top: 12px; font-size: 12px; letter-spacing: 2px; color: #59636b; }
+.tk-wrap { width: 100%; max-width: 360px; max-height: 92vh; overflow-y: auto; padding: 4px 4px 0; animation: pop 0.22s ease both; }
+.tk-actions { justify-content: center; margin-top: 24px; padding-bottom: 6px; }
+
+/* Salida en la lista, con aspecto de ticket */
+.stub { position: relative; max-width: 520px; margin: 14px auto; padding: 12px 14px 14px; border-radius: 10px; box-shadow: var(--sh); border-top: 6px solid var(--ink); animation: rise 0.28s ease both; }
+.stub::before, .stub::after { content: ''; position: absolute; top: 46px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); }
+.stub::before { left: -8px; } .stub::after { right: -8px; }
+.stub-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-bottom: 10px; margin-bottom: 8px; border-bottom: 1.5px dashed #9aa5ae; font-size: 12px; color: #59636b; }
+.stub-num { font-size: 16px; font-weight: 800; letter-spacing: 1.5px; color: #111; }
+.stub .btn { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }

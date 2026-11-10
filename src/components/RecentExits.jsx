@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase.js'
-import { fmtDate, fmtDateTime, num } from '../utils.js'
-import { downloadPdf, downloadPng } from '../receipt.js'
+import { fmtDateTime, num } from '../utils.js'
+import TicketModal from './Ticket.jsx'
 
 // Buscador de salidas (número, factura, cliente, fecha) + historial de las últimas 10
 export default function RecentExits({ say, refresh }) {
   const [q, setQ] = useState('')
   const [day, setDay] = useState('')
   const [rows, setRows] = useState(null)
-  const [open, setOpen] = useState(null)
+  const [preview, setPreview] = useState(null) // salida mostrada en la ventana emergente
   const text = q.trim().replace(/[,()%*"\\]/g, ' ').trim()
   const searching = !!(text || day)
 
@@ -81,55 +81,36 @@ export default function RecentExits({ say, refresh }) {
       </div>
       {rows === null && <p className="muted mt">Cargando…</p>}
       {rows?.length === 0 && <p className="muted mt">{searching ? 'Ninguna salida coincide con la búsqueda.' : 'Aún no hay salidas.'}</p>}
-      {rows?.map((m) => {
-        const isOpen = open === m.id
-        return (
-          <div className={'card' + (isOpen ? '' : ' click')} key={m.id}>
-            <div className="prod" onClick={() => setOpen(isOpen ? null : m.id)}>
-              <div className="prod-main">
-                <strong>
-                  {m.number != null && <span className="chip num">N° {m.number}</span>} Factura {m.invoice || '—'}
-                </strong>
-                <div className="muted">👤 {m.customer || 'Sin cliente'}</div>
-                <div className="muted">🕑 {fmtDateTime(m.created_at)}</div>
-              </div>
-              <div className="prod-side">
-                <span className="pill ok">{m.movement_items.length} producto(s)</span>
-                <span className="muted">{isOpen ? 'Ocultar ▲' : 'Ver detalle ▼'}</span>
-              </div>
-            </div>
-            {isOpen && (
-              <div className="detail">
-                <table className="tbl">
-                  <tbody>
-                    {m.movement_items.map((i) => (
-                      <tr key={i.id}>
-                        <td>{i.product_name}</td>
-                        <td>Lote {i.lot}</td>
-                        <td>{fmtDate(i.expiry)}</td>
-                        <td>
-                          <b>
-                            {num(i.qty)} {i.unit}
-                          </b>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {m.notes && <div className="muted mt">Notas: {m.notes}</div>}
-                <div className="row mt">
-                  <button className="btn sm" onClick={() => downloadPdf(m, m.movement_items)}>
-                    PDF
-                  </button>
-                  <button className="btn sm" onClick={() => downloadPng(m, m.movement_items)}>
-                    Imagen
-                  </button>
-                </div>
-              </div>
-            )}
+      {rows?.map((m) => (
+        <div className="stub" key={m.id}>
+          <div className="stub-top">
+            <span className="stub-num">{m.number != null ? 'N° ' + String(m.number).padStart(5, '0') : 'SALIDA'}</span>
+            <span>{fmtDateTime(m.created_at)}</span>
           </div>
-        )
-      })}
+          <div className="tk-row">
+            <span>Factura</span>
+            <b>{m.invoice || '—'}</b>
+          </div>
+          <div className="tk-row">
+            <span>Cliente</span>
+            <b>{m.customer || '—'}</b>
+          </div>
+          <div className="tk-sep" />
+          {m.movement_items.slice(0, 3).map((i) => (
+            <div className="tk-row" key={i.id}>
+              <span>{i.product_name}</span>
+              <b>
+                {num(i.qty)} {i.unit}
+              </b>
+            </div>
+          ))}
+          {m.movement_items.length > 3 && <small>… y {m.movement_items.length - 3} producto(s) más</small>}
+          <button className="btn primary block mt" onClick={() => setPreview(m)}>
+            👁 Vista previa del ticket
+          </button>
+        </div>
+      ))}
+      {preview && <TicketModal mov={preview} onClose={() => setPreview(null)} />}
     </div>
   )
 }

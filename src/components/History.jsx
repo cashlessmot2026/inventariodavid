@@ -3,11 +3,13 @@ import { supabase } from '../supabase.js'
 import { fmtDate, fmtDateTime, localToday, num } from '../utils.js'
 import { dailyCsv, dailyPdf } from '../report.js'
 import { downloadPdf, downloadPng } from '../receipt.js'
+import TicketModal from './Ticket.jsx'
 
 export default function History({ say }) {
   const [rows, setRows] = useState([])
   const [q, setQ] = useState('')
   const [day, setDay] = useState(localToday())
+  const [preview, setPreview] = useState(null)
 
   useEffect(() => {
     let query = supabase.from('movements').select('*, movement_items(*)').order('created_at', { ascending: false })
@@ -77,6 +79,9 @@ export default function History({ say }) {
             </tbody>
           </table>
           <div className="row mt">
+            <button className="btn sm primary" onClick={() => setPreview(m)}>
+              👁 Vista previa
+            </button>
             <button className="btn sm" onClick={() => downloadPdf(m, m.movement_items)}>
               PDF
             </button>
@@ -87,6 +92,7 @@ export default function History({ say }) {
         </div>
       ))}
       {!list.length && <p className="muted">Sin movimientos.</p>}
+      {preview && <TicketModal mov={preview} onClose={() => setPreview(null)} />}
     </section>
   )
 }

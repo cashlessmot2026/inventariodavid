@@ -45,6 +45,7 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
   - Pestaña Salida (pública y admin): buscador de salidas por N° de salida, factura, cliente y fecha; debajo, historial de las últimas 10 salidas con detalle y PDF/imagen (`RecentExits.jsx`).
   - Número consecutivo de salida (`movements.number`, `supabase/actualizacion_v5.sql`); aparece en el comprobante y en Historial.
   - Admin: la pestaña Inventario ahora se llama **Productos**; el precio se muestra siempre («Sin precio» si falta), es la primera casilla del formulario y se puede cambiar rápido al abrir la tarjeta del producto.
+- 2026-11-09 (v6): las salidas se muestran como **tickets** (`Ticket.jsx`): cada salida de la lista es un talón con N°, fecha, factura, cliente y productos, y un botón «Vista previa del ticket» abre una ventana emergente con el ticket completo (lotes, vencimientos, notas) y botones PDF / Imagen / Cerrar. El mismo botón está en Historial (admin) y al terminar de registrar una salida. Sin cambios de SQL.
 
 ## Estado al cierre de la sesión del 2026-11-09
 - Todo está subido a `main` y publicado (último commit de código: `9e0c5fe`; los despliegues de GitHub Actions terminaron en éxito).

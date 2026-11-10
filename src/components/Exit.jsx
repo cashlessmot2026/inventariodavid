@@ -4,6 +4,7 @@ import { allocateFefo, fmtDate, expiryClass, num, sortedBatches } from '../utils
 import { downloadPdf, downloadPng } from '../receipt.js'
 import NfcButton from './NfcButton.jsx'
 import RecentExits from './RecentExits.jsx'
+import TicketModal from './Ticket.jsx'
 
 export default function Exit({ products, batches, settings, load, say, pendingTag, clearTag }) {
   const [lines, setLines] = useState(() => {
@@ -19,6 +20,7 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
   const [manual, setManual] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(null)
+  const [ticket, setTicket] = useState(false)
 
   const byId = useMemo(() => Object.fromEntries(products.map((p) => [p.id, p])), [products])
   const batchesOf = (pid) => batches.filter((b) => b.product_id === pid)
@@ -183,7 +185,10 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
           <strong>
             ✔ Salida {done.mov.number != null ? `N° ${done.mov.number} ` : ''}registrada (factura {done.mov.invoice})
           </strong>
-          <div className="row mt">
+          <div className="row wrap mt">
+            <button className="btn primary" onClick={() => setTicket(true)}>
+              👁 Ver ticket
+            </button>
             <button className="btn" onClick={() => downloadPdf(done.mov, done.items)}>
               PDF
             </button>
@@ -193,6 +198,8 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
           </div>
         </div>
       )}
+
+      {ticket && done && <TicketModal mov={{ ...done.mov, movement_items: done.items }} onClose={() => setTicket(false)} />}
 
       <RecentExits say={say} refresh={done?.mov?.id} />
     </section>
