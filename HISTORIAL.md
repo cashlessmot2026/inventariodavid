@@ -48,20 +48,19 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
 - 2026-11-09 (v6): las salidas se muestran como **tickets** (`Ticket.jsx`): cada salida de la lista es un talón con N°, fecha, factura, cliente y productos, y un botón «Vista previa del ticket» abre una ventana emergente con el ticket completo (lotes, vencimientos, notas) y botones PDF / Imagen / Cerrar. El mismo botón está en Historial (admin) y al terminar de registrar una salida. Sin cambios de SQL.
 
 ## Estado al cierre de la sesión del 2026-11-09
-- Todo está subido a `main` y publicado (último commit de código: `9e0c5fe`; los despliegues de GitHub Actions terminaron en éxito).
-- Supabase: la **v3 ya está ejecutada** y **ya existe una contraseña de admin** (comprobado consultando la base). El usuario del admin es `admin`. La contraseña no se anota aquí porque el repo es público; se cambia en Ajustes → Administrador.
+- Todo está subido a `main` y publicado (último commit de código: `d0981d0`, tickets de salida; los despliegues de GitHub Actions terminaron en éxito).
+- Supabase: **v3, v4 y v5 ya están ejecutadas** (comprobado consultando la base: existen `price`, `category`, `brand`, `reference` y `movements.number`). Al ejecutar la v5 el SQL Editor respondió `setval 48`: es lo normal, las 48 salidas existentes quedaron numeradas y la siguiente será la N° 49. Ya existe contraseña de admin; el usuario es `admin`. La contraseña no se anota aquí porque el repo es público; se cambia en Ajustes → Administrador.
+- El usuario confirmó el 2026-11-09 que todo funciona bien tras ejecutar el SQL. **No queda SQL pendiente.**
 - La base tiene 97 productos, todos sin categoría/marca/referencia y sin precio; 43 con stock en 8 o menos.
 - Las últimas 10 salidas del 2026-11-09 son «Factura 0», sin cliente y de 1 unidad: parecen pruebas, pero descontaron stock real.
 - Revisado en navegador (copia compilada en carpeta temporal, con los datos reales): vista pública de Inventario, pestaña Salida con las últimas 10 salidas, y el diseño del panel admin. **No probado:** iniciar sesión, guardar productos/precios, escribir en el buscador de salidas, notificaciones y voz en un teléfono.
 
 ## Pendiente / siguiente
-1. **Ejecutar `supabase/actualizacion_v4.sql`** en Supabase → SQL Editor (lo hace el usuario): categoría, marca y referencia. Sin esto, guardar un producto con esos campos da error.
-2. **Ejecutar `supabase/actualizacion_v5.sql`**: número consecutivo de salida. Sin esto el buscador funciona por factura, cliente y fecha, pero no por número. (`supabase/schema.sql` contiene todo, para una instalación desde cero.)
-3. Cargar precio, categoría, marca y referencia de los productos desde el admin (pestaña Productos).
-4. Probar la app en un Android y un iPhone reales: login de admin, guardar cambios, avisos de stock bajo y voz.
-5. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
-6. Seguridad: editar exige contraseña de admin, pero ver datos y registrar salidas sigue abierto a quien tenga el enlace; la página pública muestra clientes y facturas de las salidas. Conviene usar una contraseña de admin más fuerte.
-7. Ideas: editar/anular salidas (serviría para borrar las de prueba), exportar a Excel, stock mínimo distinto por producto.
+1. Cargar precio, categoría, marca y referencia de los productos desde el admin (pestaña Productos).
+2. Probar la app en un Android y un iPhone reales: login de admin, guardar cambios, avisos de stock bajo y voz.
+3. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
+4. Seguridad: editar exige contraseña de admin, pero ver datos y registrar salidas sigue abierto a quien tenga el enlace; la página pública muestra clientes y facturas de las salidas. Conviene usar una contraseña de admin más fuerte.
+5. Ideas: editar/anular salidas (serviría para borrar las de prueba), exportar a Excel, stock mínimo distinto por producto.
 
 ## Notas técnicas
 - Archivos clave: `src/App.jsx` (estado, modo público/admin y tabs), `src/components/*` (pestañas; `Stock.jsx` vista pública, `Inventory.jsx` productos del admin, `RecentExits.jsx` buscador de salidas, `Unlock.jsx` login), `src/utils.js` (FEFO, NFC, fechas), `src/receipt.js` (PDF/PNG), `src/notify.js` (alertas), `vite.config.js` (manifest PWA, base `/inventariodavid/`).
@@ -70,3 +69,4 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
 - Git: usuario con sesión `gh` de `cashlessmot2026`; commits con `Co-Authored-By` de Claude.
 - Para revisar el diseño sin tocar el proyecto: copiar a una carpeta temporal, `npm install`, `vite build` y `vite preview` allí (el proyecto no tiene `node_modules`).
 - No escribir contraseñas en ningún archivo del repo: es público.
+- Para una instalación desde cero basta ejecutar `supabase/schema.sql` (incluye v3, v4 y v5). Todos los SQL son idempotentes.
