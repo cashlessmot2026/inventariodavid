@@ -1,10 +1,10 @@
 # Historial del proyecto · Urueta Farmacia (PWA de inventario de medicamentos)
 
-Última actualización: 2026-11-09
+Última actualización: 2026-11-10
 
 ## Enlaces
 - Repo: https://github.com/cashlessmot2026/inventariodavid (rama `main`)
-- App publicada: https://cashlessmot2026.github.io/inventariodavid/
+- App publicada: https://uruetafarmacia.online (dominio propio en GitHub Pages; antes https://cashlessmot2026.github.io/inventariodavid/)
 - Supabase: https://nnibpmxtivlalrwjieyb.supabase.co (la anon key está en `src/supabase.js`; se puede sobrescribir con `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`)
 
 ## Pedido original (resumen)
@@ -55,6 +55,10 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
 - La base tiene 97 productos, todos sin categoría/marca/referencia y sin precio; 43 con stock en 8 o menos.
 - Las últimas 10 salidas del 2026-11-09 son «Factura 0», sin cliente y de 1 unidad: parecen pruebas, pero descontaron stock real.
 - Revisado en navegador (copia compilada en carpeta temporal, con los datos reales): vista pública de Inventario, pestaña Salida con las últimas 10 salidas, y el diseño del panel admin. **No probado:** iniciar sesión, guardar productos/precios, escribir en el buscador de salidas, notificaciones y voz en un teléfono.
+- 2026-11-10 (logo y dominio):
+  - **Logo de Urueta Dermatólogo** (original `logo.jpeg`, fondo blanco quitado con Python/Pillow: relleno desde el borde + antialias, el óvalo interior queda blanco). Archivos en `public/`: `logo.png` (completo, transparente), `logo-mark.png` (solo símbolo), `favicon.png`; `icon-192.png` y `icon-512.png` ahora son el logo sobre fondo blanco.
+  - Uso: pantalla de inicio (`.splash` en `App.jsx`, se desvanece al cargar datos, más `#boot` estático en `index.html` que `main.jsx` retira), símbolo en el encabezado (sigue valiendo el secreto de 5 toques), logo completo en el ticket (`Ticket.jsx`), favicon y manifest.
+  - **Dominio `uruetafarmacia.online`:** la página salía en blanco porque `vite.config.js` tenía `base: '/inventariodavid/'` y en el dominio propio los recursos daban 404. Ahora `base: '/'`, `index.html` usa `%BASE_URL%` y existe `public/CNAME`. Si se ve en blanco tras desplegar: Ctrl+F5 o reinstalar la PWA (service worker viejo). En GitHub: Settings → Pages con el dominio y HTTPS activos.
 
 ## Pendiente / siguiente
 1. Cargar precio, categoría, marca y referencia de los productos desde el admin (pestaña Productos).
