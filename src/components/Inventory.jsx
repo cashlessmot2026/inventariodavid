@@ -1,47 +1,78 @@
-import React, { useState } from 'react'
-import { expiryClass, money, num, today } from '../utils.js'
+import React, { useMemo, useState } from 'react'
+import { expiryClass, nfcSupported, stockStatus, tagUrl, today, writeNfcUrl } from '../utils.js'
 import NfcButton from './NfcButton.jsx'
-import { nfcSupported, tagUrl, writeNfcUrl } from '../utils.js'
+import ProductInfo from './ProductInfo.jsx'
 
 const UNITS = ['unidades', 'ml', 'mg', 'g', 'tabletas', 'cápsulas', 'ampollas', 'frascos', 'cajas']
-const EMPTY = { name: '', unit: 'unidades', nfc_code: '', shelf_id: '', space: '', notes: '', price: '' }
+const EMPTY = { name: '', reference: '', brand: '', category: '', unit: 'unidades', price: '', nfc_code: '', shelf_id: '', space: '', notes: '' }
+const FILTERS = [
+  ['all', 'Todos'],
+  ['ok', 'Disponibles'],
+  ['warn', 'Stock bajo'],
+  ['bad', 'Agotados']
+]
+const uniq = (arr) => [...new Set(arr.map((v) => (v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'))
 
-export default function Inventory({ products, batches, shelves, settings, load, say, admin, low }) {
-  const can = admin.unlocked
+// Inventario del administrador: crear/editar productos, lotes, entradas, precio y ubicación
+export default function Inventory({ products, batches, shelves, settings, load, say, admin }) {
   const db = admin.db
-  const lowIds = new Set(low.map((p) => p.id))
+  const min = Number(settings.min_stock)
   const [q, setQ] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [cat, setCat] = useState('')
   const [form, setForm] = useState(null) // producto en edición/creación
   const [open, setOpen] = useState(null) // producto con lotes desplegados
   const [nb, setNb] = useState({ lot: '', expiry: '', qty: '', invoice: '', supplier: '' })
 
+  const totals = useMemo(() => {
+    const t = {}
+    for (const b of batches) t[b.product_id] = (t[b.product_id] || 0) + Number(b.qty)
+    return t
+  }, [batches])
+  const total = (p) => totals[p.id] || 0
   const shelfName = (id) => shelves.find((s) => s.id === id)?.name
   const location = (p) => (p.shelf_id ? `${shelfName(p.shelf_id)} · espacio ${p.space ?? '?'}` : 'Sin ubicación')
-  const total = (pid) => batches.filter((b) => b.product_id === pid).reduce((a, b) => a + Number(b.qty), 0)
 
+  const categories = useMemo(() => uniq(products.map((p) => p.category)), [products])
+  const brands = useMemo(() => uniq(products.map((p) => p.brand)), [products])
+
+  const t = q.trim().toLowerCase()
   const list = products.filter((p) => {
-    const t = q.toLowerCase()
-    return !t || p.name.toLowerCase().includes(t) || (p.nfc_code || '').toLowerCase().includes(t) || location(p).toLowerCase().includes(t)
+    if (filter !== 'all' && stockStatus(total(p), min) !== filter) return false
+    if (cat && (p.category || '') !== cat) return false
+    return (
+      !t ||
+      [p.name, p.category, p.brand, p.reference, p.nfc_code, location(p)].some((v) => (v || '').toLowerCase().includes(t))
+    )
   })
+
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
   const save = async () => {
     if (!form.name.trim()) return say('Falta el nombre')
     const noPrice = form.price === '' || form.price == null
     if (!noPrice && !(Number(form.price) >= 0)) return say('Precio inválido')
+    const txt = (v) => (v || '').trim() || null
     const row = {
       name: form.name.trim(),
-      unit: form.unit.trim() || 'unidades',
-      nfc_code: form.nfc_code.trim() || null,
+      reference: txt(form.reference),
+      brand: txt(form.brand),
+      category: txt(form.category),
+      unit: (form.unit || '').trim() || 'unidades',
+      price: noPrice ? null : Number(form.price),
+      nfc_code: txt(form.nfc_code),
       shelf_id: form.shelf_id || null,
       space: form.shelf_id && form.space ? Number(form.space) : null,
-      notes: form.notes || null,
-      price: noPrice ? null : Number(form.price)
+      notes: form.notes || null
     }
-    const { error } = form.id
-      ? await db.from('products').update(row).eq('id', form.id)
-      : await db.from('products').insert(row)
-    if (error) return say(error.message.includes('nfc_code') ? 'Ese tag NFC ya está asignado' : error.message)
+    const { error } = form.id ? await db.from('products').update(row).eq('id', form.id) : await db.from('products').insert(row)
+    if (error) {
+      if (error.message.includes('nfc_code')) return say('Ese tag NFC ya está asignado')
+      if (/category|brand|reference/.test(error.message)) return say('Falta ejecutar supabase/actualizacion_v4.sql en Supabase')
+      return say(error.message)
+    }
     setForm(null)
+    say('Producto guardado')
     load()
   }
 
@@ -65,6 +96,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
     })
     if (error) return say(error.message)
     setNb({ lot: '', expiry: '', qty: '', invoice: '', supplier: '' })
+    say('Entrada registrada')
     load()
   }
 
@@ -81,68 +113,87 @@ export default function Inventory({ products, batches, shelves, settings, load, 
     load()
   }
 
+  const writeTag = async () => {
+    if (!nfcSupported()) return say('Escribir tags requiere Chrome en Android')
+    const code = form.nfc_code?.trim() || Math.random().toString(36).slice(2, 10)
+    setForm((f) => ({ ...f, nfc_code: code }))
+    say('Acerca el tag para escribirlo…')
+    try {
+      await writeNfcUrl(tagUrl(code))
+      say('Tag escrito ✔ (funciona en iPhone y Android). Guarda el producto.')
+    } catch (e) {
+      say('No se pudo escribir: ' + e.message)
+    }
+  }
+
   const shelf = shelves.find((s) => s.id === form?.shelf_id)
 
   return (
     <section>
-      <h2>Inventario</h2>
-      <div className="row">
-        <input placeholder="🔍 Buscar producto, código o estantería" value={q} onChange={(e) => setQ(e.target.value)} />
-        {can ? (
-          <button className="btn primary" onClick={() => setForm({ ...EMPTY })}>
-            + Producto
-          </button>
-        ) : (
-          <button className="btn" onClick={admin.ask}>
-            🔒 Editar
-          </button>
-        )}
+      <div className="row between">
+        <h2>Inventario</h2>
+        <button className="btn primary" onClick={() => setForm(form ? null : { ...EMPTY })}>
+          {form ? 'Cerrar' : '+ Nuevo producto'}
+        </button>
       </div>
 
-      {form && can && (
+      {form && (
         <div className="card">
           <h3>{form.id ? 'Editar producto' : 'Nuevo producto'}</h3>
-          <input placeholder="Nombre / referencia *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <div className="row mt">
-            <input list="units" placeholder="Unidad de medida" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-            <datalist id="units">
-              {UNITS.map((u) => (
-                <option key={u} value={u} />
-              ))}
-            </datalist>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              inputMode="decimal"
-              placeholder="Precio $"
-              value={form.price ?? ''}
-              onChange={(e) => setForm({ ...form, price: e.target.value })}
-            />
+          <label className="field">
+            <span>Nombre *</span>
+            <input value={form.name} onChange={set('name')} />
+          </label>
+          <div className="grid2 mt">
+            <label className="field">
+              <span>Referencia</span>
+              <input value={form.reference || ''} onChange={set('reference')} />
+            </label>
+            <label className="field">
+              <span>Marca</span>
+              <input list="brands" value={form.brand || ''} onChange={set('brand')} />
+            </label>
+            <label className="field">
+              <span>Categoría</span>
+              <input list="cats" value={form.category || ''} onChange={set('category')} />
+            </label>
+            <label className="field">
+              <span>Precio $</span>
+              <input type="number" min="0" step="any" inputMode="decimal" value={form.price ?? ''} onChange={set('price')} />
+            </label>
+            <label className="field">
+              <span>Unidad de medida</span>
+              <input list="units" value={form.unit || ''} onChange={set('unit')} />
+            </label>
+            <label className="field">
+              <span>Código NFC</span>
+              <input value={form.nfc_code || ''} onChange={set('nfc_code')} />
+            </label>
           </div>
-          <div className="row mt">
-            <input placeholder="Código NFC" value={form.nfc_code || ''} onChange={(e) => setForm({ ...form, nfc_code: e.target.value })} />
+          <datalist id="units">
+            {UNITS.map((u) => (
+              <option key={u} value={u} />
+            ))}
+          </datalist>
+          <datalist id="brands">
+            {brands.map((u) => (
+              <option key={u} value={u} />
+            ))}
+          </datalist>
+          <datalist id="cats">
+            {categories.map((u) => (
+              <option key={u} value={u} />
+            ))}
+          </datalist>
+          <div className="row wrap mt">
             <NfcButton label="Leer tag" onCode={(c) => setForm((f) => ({ ...f, nfc_code: c }))} say={say} />
+            <button type="button" className="btn" onClick={writeTag}>
+              ✍ Escribir enlace en el tag (iPhone)
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn mt block"
-            onClick={async () => {
-              if (!nfcSupported()) return say('Escribir tags requiere Chrome en Android')
-              const code = form.nfc_code?.trim() || Math.random().toString(36).slice(2, 10)
-              setForm((f) => ({ ...f, nfc_code: code }))
-              say('Acerca el tag para escribirlo…')
-              try {
-                await writeNfcUrl(tagUrl(code))
-                say('Tag escrito ✔ (funciona en iPhone y Android). Guarda el producto.')
-              } catch (e) {
-                say('No se pudo escribir: ' + e.message)
-              }
-            }}
-          >
-            ✍ Escribir enlace en el tag (para iPhone)
-          </button>
-          <label className="muted mt" style={{ display: 'block' }}>📍 Ubicación del producto (editable)</label>
+          <label className="field mt">
+            <span>📍 Ubicación en la estantería</span>
+          </label>
           <div className="row">
             <select value={form.shelf_id || ''} onChange={(e) => setForm({ ...form, shelf_id: e.target.value, space: '' })}>
               <option value="">Sin estantería</option>
@@ -152,16 +203,20 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                 </option>
               ))}
             </select>
-            <select disabled={!shelf} value={form.space || ''} onChange={(e) => setForm({ ...form, space: e.target.value })}>
+            <select disabled={!shelf} value={form.space || ''} onChange={set('space')}>
               <option value="">Espacio</option>
-              {shelf && Array.from({ length: shelf.spaces }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  Espacio {n}
-                </option>
-              ))}
+              {shelf &&
+                Array.from({ length: shelf.spaces }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    Espacio {n}
+                  </option>
+                ))}
             </select>
           </div>
-          <input className="mt" placeholder="Notas" value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          <label className="field mt">
+            <span>Notas</span>
+            <input value={form.notes || ''} onChange={set('notes')} />
+          </label>
           <div className="row mt">
             <button className="btn primary" onClick={save}>
               Guardar
@@ -173,104 +228,113 @@ export default function Inventory({ products, batches, shelves, settings, load, 
         </div>
       )}
 
+      <input className="search" placeholder="🔍 Buscar producto, marca, referencia, código o estantería" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="row wrap mt">
+        {FILTERS.map(([k, l]) => (
+          <button key={k} className={'btn sm' + (filter === k ? ' dark' : '')} onClick={() => setFilter(k)}>
+            {l}
+          </button>
+        ))}
+        {categories.length > 0 && (
+          <select style={{ width: 'auto', flex: '1 1 140px' }} value={cat} onChange={(e) => setCat(e.target.value)}>
+            <option value="">Todas las categorías</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+
       {list.map((p) => {
         const bs = batches.filter((b) => b.product_id === p.id)
+        const isOpen = open === p.id
         return (
-          <div className="card" key={p.id}>
-            <div className="row between" onClick={() => setOpen(open === p.id ? null : p.id)}>
-              <div>
-                <strong>{p.name}</strong>
-                {lowIds.has(p.id) && <span className="pill bad" style={{ marginLeft: 6 }}>Stock bajo</span>}
-                <div className="muted">📍 {location(p)}</div>
+          <div className={'card st-' + stockStatus(total(p), min) + (isOpen ? '' : ' click')} key={p.id}>
+            <ProductInfo p={p} total={total(p)} min={min} location={location(p)} onClick={() => setOpen(isOpen ? null : p.id)} />
+            {isOpen && (
+              <div className="detail">
                 {p.nfc_code && <div className="muted">NFC: {p.nfc_code}</div>}
-              </div>
-              <div className="stock">
-                {num(total(p.id))}
-                <small> {p.unit}</small>
-                {p.price != null && <div className="price">{money(p.price)}</div>}
-              </div>
-            </div>
-            {open === p.id && (
-              <>
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Lote</th>
-                      <th>Vence</th>
-                      <th>Cant.</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bs.map((b) => (
-                      <tr key={b.id}>
-                        <td>
-                          <input disabled={!can} defaultValue={b.lot} onBlur={(e) => e.target.value !== b.lot && editBatch(b, { lot: e.target.value })} />
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            disabled={!can}
-                            className={'pill-in ' + expiryClass(b.expiry, settings.alert_months)}
-                            defaultValue={b.expiry}
-                            onBlur={(e) => e.target.value && e.target.value !== b.expiry && editBatch(b, { expiry: e.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            disabled={!can}
-                            step="any"
-                            min="0"
-                            defaultValue={b.qty}
-                            onBlur={(e) => Number(e.target.value) !== Number(b.qty) && editBatch(b, { qty: Number(e.target.value) })}
-                          />
-                        </td>
-                        <td>
-                          {can && (
+                {p.notes && <div className="muted">Notas: {p.notes}</div>}
+                {bs.length > 0 ? (
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Lote</th>
+                        <th>Vence</th>
+                        <th>Cant.</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bs.map((b) => (
+                        <tr key={b.id}>
+                          <td>
+                            <input defaultValue={b.lot} onBlur={(e) => e.target.value !== b.lot && editBatch(b, { lot: e.target.value })} />
+                          </td>
+                          <td>
+                            <input
+                              type="date"
+                              className={'pill-in ' + expiryClass(b.expiry, settings.alert_months)}
+                              defaultValue={b.expiry}
+                              onBlur={(e) => e.target.value && e.target.value !== b.expiry && editBatch(b, { expiry: e.target.value })}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              defaultValue={b.qty}
+                              onBlur={(e) => Number(e.target.value) !== Number(b.qty) && editBatch(b, { qty: Number(e.target.value) })}
+                            />
+                          </td>
+                          <td>
                             <button className="btn sm danger" onClick={() => delBatch(b)}>
                               ✕
                             </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!bs.length && <p className="muted">Sin lotes registrados.</p>}
-                {!can && (
-                  <button className="btn mt block" onClick={admin.ask}>
-                    🔒 Desbloquear para modificar
-                  </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="muted">Sin lotes registrados. Agrega la primera entrada:</p>
                 )}
-                {can && (<>
-                <div className="row mt">
+                <h3 className="mt">Entrada de lote</h3>
+                <div className="row">
                   <input placeholder="Lote" value={nb.lot} onChange={(e) => setNb({ ...nb, lot: e.target.value })} />
                   <input type="date" min={today()} value={nb.expiry} onChange={(e) => setNb({ ...nb, expiry: e.target.value })} />
                   <input type="number" step="any" placeholder="Cant." value={nb.qty} onChange={(e) => setNb({ ...nb, qty: e.target.value })} />
                 </div>
                 <div className="row mt">
-                  <input placeholder="Factura entrada (opcional)" value={nb.invoice} onChange={(e) => setNb({ ...nb, invoice: e.target.value })} />
+                  <input placeholder="Factura (opcional)" value={nb.invoice} onChange={(e) => setNb({ ...nb, invoice: e.target.value })} />
                   <input placeholder="Proveedor (opcional)" value={nb.supplier} onChange={(e) => setNb({ ...nb, supplier: e.target.value })} />
-                  <button className="btn primary" onClick={() => addBatch(p.id)}>
-                    + Entrada de lote
-                  </button>
                 </div>
-                <div className="row mt">
-                  <button className="btn" onClick={() => setForm({ ...p })}>
-                    Editar producto
+                <div className="row wrap mt">
+                  <button className="btn primary" onClick={() => addBatch(p.id)}>
+                    + Registrar entrada
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setForm({ ...EMPTY, ...p })
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                  >
+                    ✎ Editar producto
                   </button>
                   <button className="btn danger" onClick={() => del(p)}>
                     Eliminar
                   </button>
                 </div>
-                </>)}
-              </>
+              </div>
             )}
           </div>
         )
       })}
-      {!list.length && <p className="muted">Sin resultados.</p>}
+      {!list.length && <p className="muted mt">Sin resultados.</p>}
     </section>
   )
 }

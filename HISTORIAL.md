@@ -36,8 +36,14 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
   - **Stock mínimo** (`settings.min_stock`, por defecto 8, editable en Ajustes): al llegar al mínimo se muestra notificación con el nombre del producto y voz «Hay 8 unidades de X» (se puede apagar la voz en Ajustes). Un aviso por producto hasta que se reponga. Tiempo real de Supabase sobre `batches` para que avise en los demás dispositivos con la app abierta. Tarjeta «Stock bajo» en Panel y etiqueta en Inventario.
   - **Contraseña de administrador**: inventario, estanterías, entradas y ajustes solo se modifican con contraseña; ver y registrar salidas no la requiere. Se valida en la base de datos (RLS + cabecera `x-admin-pass`, hash bcrypt en `admin_secret`), no solo en pantalla. Se crea la primera vez que alguien pulsa «Desbloquear» y se cambia en Ajustes → Administrador. Si se olvida: `delete from admin_secret;` en Supabase.
   - **Precio** por producto (`products.price`), editable en el formulario del producto y visible para todos en Inventario.
+- 2026-11-09 (v4, rediseño):
+  - **Dos interfaces.** Pública: pestañas Salida e Inventario (estado de solo lectura: cantidad en verde si hay más del mínimo, ámbar si llegó al mínimo, rojo agotado; precio; ubicación; organizado por categoría, marca o referencia). Administrador (oculta): Panel, Salida, Inventario, Estanterías, Historial, Ajustes.
+  - **Acceso oculto al admin:** 5 toques seguidos sobre el logo o abrir la app con `#admin` al final de la dirección. Usuario `admin` (se comprueba en la app); la contraseña la valida la base de datos. No se guardó ninguna contraseña en el repo (es público): en el primer ingreso, la contraseña que se escriba queda guardada.
+  - Pestañas arriba (fijas), botones redondeados con sombra, tarjetas con animación, Panel tipo dashboard con indicadores (productos, disponibles, stock bajo, agotados, por vencer, valor del inventario).
+  - Productos con `category`, `brand`, `reference` (`supabase/actualizacion_v4.sql`). Archivos nuevos: `Stock.jsx` (vista pública), `ProductInfo.jsx`, `Unlock.jsx` (login).
 
 ## Pendiente / siguiente
+0. **Ejecutar `supabase/actualizacion_v4.sql`** (después de la v3) para poder guardar categoría, marca y referencia.
 1. **Ejecutar `supabase/actualizacion_v3.sql` en Supabase → SQL Editor** (lo hace el usuario). Sin esto no se puede desbloquear la edición. (`supabase/schema.sql` contiene todo, para una instalación desde cero.)
 2. Probar la app en un Android y un iPhone reales; nada se ha probado en uso (solo se verificó que el build de GitHub Actions termina en éxito).
 3. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.

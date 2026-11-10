@@ -51,7 +51,7 @@ export default function Settings({ settings, load, say, admin }) {
       <div className="card">
         <h3>🔒 Administrador</h3>
         <p className="muted">
-          Para modificar inventario, estanterías y ajustes se necesita la contraseña. Ver el inventario y registrar salidas no la requiere.
+          Usuario: <b>admin</b>. El panel de administración está oculto: se abre tocando 5 veces seguidas el logo, o con la dirección de la app terminada en <code>#admin</code>.
         </p>
         {!admin.unlocked ? (
           <button className="btn primary" onClick={admin.ask}>
@@ -59,13 +59,10 @@ export default function Settings({ settings, load, say, admin }) {
           </button>
         ) : (
           <>
-            <p className="muted">Estado: edición desbloqueada en este dispositivo (se bloquea al cerrar la app).</p>
+            <p className="muted">Sesión iniciada en este dispositivo (se cierra al cerrar la app o con «Salir»).</p>
             <div className="row">
               <button className="btn" onClick={() => setPw(pw ? null : { old: '', next: '', again: '' })}>
                 Cambiar contraseña
-              </button>
-              <button className="btn" onClick={admin.lock}>
-                Bloquear ahora
               </button>
             </div>
             {pw && (

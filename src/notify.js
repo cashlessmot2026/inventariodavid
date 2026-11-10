@@ -93,7 +93,13 @@ export function notifyLowStock(list) {
   try {
     localStorage.setItem('low-seen', JSON.stringify(Object.fromEntries(list.map((p) => [p.id, 1]))))
   } catch {}
-  for (const p of fresh) show('Stock bajo', { body: lowText(p), tag: 'stock-' + p.id })
-  if (voiceOn()) fresh.slice(0, 3).forEach((p) => speak(lowText(p)))
+  if (fresh.length > 3) {
+    const text = `Hay ${fresh.length} productos con stock bajo`
+    show('Stock bajo', { body: text + ': ' + fresh.slice(0, 5).map((p) => p.name).join(', ') + '…', tag: 'stock-resumen' })
+    if (voiceOn()) speak(text)
+  } else {
+    for (const p of fresh) show('Stock bajo', { body: lowText(p), tag: 'stock-' + p.id })
+    if (voiceOn()) fresh.forEach((p) => speak(lowText(p)))
+  }
   return fresh
 }

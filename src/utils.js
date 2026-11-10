@@ -25,6 +25,10 @@ export const expiryClass = (expiry, months) => {
 
 export const money = (n) => '$ ' + Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 })
 
+// Estado del stock: verde si hay más del mínimo, ámbar si llegó al mínimo, rojo si está agotado
+export const stockStatus = (total, min) => (Number(total) > Number(min) ? 'ok' : Number(total) > 0 ? 'warn' : 'bad')
+export const STATUS_LABEL = { ok: 'Disponible', warn: 'Stock bajo', bad: 'Agotado' }
+
 export const num = (n) => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 })
 
 // Lotes con stock, el que vence primero va primero (FEFO)

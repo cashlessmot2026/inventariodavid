@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabase.js'
-import { daysUntil, fmtDate, num } from '../utils.js'
+import { daysUntil, fmtDate, money, num, stockStatus } from '../utils.js'
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
@@ -21,15 +21,28 @@ function Bars({ rows, fmt = num }) {
   )
 }
 
-export default function Panel({ expiring, settings, low }) {
+// Dashboard del administrador
+export default function Panel({ expiring, settings, low, products, batches, go }) {
   const [items, setItems] = useState([])
 
   useEffect(() => {
     supabase
       .from('movement_items')
-      .select('product_name, unit, qty, movements(created_at)')
-      .then(({ data }) => setItems(data || []))
+      .select('product_name, unit, qty, movements(created_at, type)')
+      .then(({ data }) => setItems((data || []).filter((i) => i.movements && i.movements.type !== 'in')))
   }, [])
+
+  const kpi = useMemo(() => {
+    const tot = {}
+    for (const b of batches) tot[b.product_id] = (tot[b.product_id] || 0) + Number(b.qty)
+    const k = { ok: 0, warn: 0, bad: 0, value: 0 }
+    for (const p of products) {
+      const t = tot[p.id] || 0
+      k[stockStatus(t, settings.min_stock)]++
+      k.value += t * (Number(p.price) || 0)
+    }
+    return k
+  }, [products, batches, settings])
 
   const stats = useMemo(() => {
     const prod = {}
@@ -56,7 +69,46 @@ export default function Panel({ expiring, settings, low }) {
 
   return (
     <section>
-      <h2>Panel y analítica</h2>
+      <h2>Panel de control</h2>
+
+      <div className="kpis">
+        <div className="kpi dark">
+          <b>{products.length}</b>
+          <span>Productos</span>
+        </div>
+        <div className="kpi ok">
+          <b>{kpi.ok}</b>
+          <span>Disponibles</span>
+        </div>
+        <div className="kpi warn">
+          <b>{kpi.warn}</b>
+          <span>Stock bajo (≤ {num(settings.min_stock)})</span>
+        </div>
+        <div className="kpi bad">
+          <b>{kpi.bad}</b>
+          <span>Agotados</span>
+        </div>
+        <div className="kpi warn">
+          <b>{expiring.length}</b>
+          <span>Lotes por vencer</span>
+        </div>
+        <div className="kpi">
+          <b>{money(kpi.value)}</b>
+          <span>Valor del inventario</span>
+        </div>
+      </div>
+
+      <div className="row wrap">
+        <button className="btn primary" onClick={() => go('inv')}>
+          + Producto / entrada
+        </button>
+        <button className="btn" onClick={() => go('exit')}>
+          📤 Registrar salida
+        </button>
+        <button className="btn" onClick={() => go('hist')}>
+          🧾 Reporte del día
+        </button>
+      </div>
 
       <div className="card">
         <h3>⚠ Stock bajo (≤ {num(settings.min_stock)})</h3>
@@ -64,7 +116,7 @@ export default function Panel({ expiring, settings, low }) {
         {low.map((p) => (
           <div className="row between line" key={p.id}>
             <span>{p.name}</span>
-            <span className="pill bad">
+            <span className={'pill ' + (p.total > 0 ? 'warn' : 'bad')}>
               {num(p.total)} {p.unit}
             </span>
           </div>

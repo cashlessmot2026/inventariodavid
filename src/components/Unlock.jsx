@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { supabase, hashPass } from '../supabase.js'
 
-// Ventana para escribir la contraseña de administrador (o crearla si aún no existe)
+const ADMIN_USER = 'admin'
+
+// Inicio de sesión del administrador (acceso oculto). Si aún no hay contraseña, la primera que se escriba queda guardada.
 export default function Unlock({ onUnlock, onClose }) {
   const [has, setHas] = useState(null) // null = consultando
+  const [user, setUser] = useState('')
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [err, setErr] = useState('')
@@ -19,6 +22,7 @@ export default function Unlock({ onUnlock, onClose }) {
   const submit = async (e) => {
     e.preventDefault()
     setErr('')
+    if (user.trim().toLowerCase() !== ADMIN_USER) return setErr('Usuario o contraseña incorrectos')
     if (has === false) {
       if (pw.length < 4) return setErr('Mínimo 4 caracteres')
       if (pw !== pw2) return setErr('Las contraseñas no coinciden')
@@ -29,7 +33,7 @@ export default function Unlock({ onUnlock, onClose }) {
       const { data, error } = await supabase.rpc('admin_check', { p_pass: token })
       setBusy(false)
       if (error) return setErr(error.message)
-      if (!data) return setErr('Contraseña incorrecta')
+      if (!data) return setErr('Usuario o contraseña incorrectos')
     } else {
       const { error } = await supabase.rpc('admin_set_password', { p_old: null, p_new: token })
       setBusy(false)
@@ -41,20 +45,17 @@ export default function Unlock({ onUnlock, onClose }) {
   return (
     <div className="modal" onClick={onClose}>
       <form className="card" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
-        <h3>🔒 {has === false ? 'Crear contraseña de administrador' : 'Contraseña de administrador'}</h3>
-        <p className="muted">
-          {has === false
-            ? 'Aún no hay contraseña. Créala para poder modificar el inventario.'
-            : 'Se necesita para modificar inventario, estanterías y ajustes.'}
-        </p>
-        <input type="password" autoFocus placeholder="Contraseña" value={pw} onChange={(e) => setPw(e.target.value)} />
+        <h3>🔒 Administrador</h3>
+        {has === false && <p className="muted">Primer ingreso: la contraseña que escribas quedará guardada como contraseña del administrador.</p>}
+        <input autoFocus autoCapitalize="none" autoComplete="username" placeholder="Usuario" value={user} onChange={(e) => setUser(e.target.value)} />
+        <input className="mt" type="password" autoComplete="current-password" placeholder="Contraseña" value={pw} onChange={(e) => setPw(e.target.value)} />
         {has === false && (
           <input className="mt" type="password" placeholder="Repetir contraseña" value={pw2} onChange={(e) => setPw2(e.target.value)} />
         )}
         {err && <p className="err">{err}</p>}
         <div className="row mt">
-          <button className="btn primary" disabled={busy || has === null || !pw}>
-            {has === false ? 'Crear y entrar' : 'Entrar'}
+          <button className="btn primary" disabled={busy || has === null || !pw || !user}>
+            Entrar
           </button>
           <button type="button" className="btn" onClick={onClose}>
             Cancelar
