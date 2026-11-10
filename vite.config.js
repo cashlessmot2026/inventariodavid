@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'Inventario de Medicamentos',
-        short_name: 'Inventario',
-        description: 'Control de inventario y salidas de medicamentos con NFC',
+        name: 'Urueta Farmacia',
+        short_name: 'Urueta Farmacia',
+        description: 'Urueta Farmacia · control de inventario y salidas de medicamentos con NFC',
         lang: 'es',
         theme_color: '#0b0f14',
         background_color: '#ffffff',

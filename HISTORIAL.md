@@ -1,6 +1,6 @@
-# Historial del proyecto · Inventario de medicamentos (PWA)
+# Historial del proyecto · Urueta Farmacia (PWA de inventario de medicamentos)
 
-Última actualización: 2026-10-28
+Última actualización: 2026-11-09
 
 ## Enlaces
 - Repo: https://github.com/cashlessmot2026/inventariodavid (rama `main`)
@@ -31,12 +31,19 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
   - PDF/imagen usan el menú Compartir en móvil.
   - Carrito guardado en `localStorage`.
 
+- 2026-10-31: reporte diario PDF/CSV de entradas y salidas (), registro de entradas (), ubicación visible en el producto.
+- 2026-11-09 (v3):
+  - La app se llama **Urueta Farmacia** (título, manifest, encabezado). La URL sigue siendo .
+  - **Stock mínimo** (, por defecto 8, editable en Ajustes): al llegar al mínimo se muestra notificación con el nombre del producto y voz «Hay 8 unidades de X» (se puede apagar la voz en Ajustes). Un aviso por producto hasta que se reponga. Tiempo real de Supabase sobre  para que avise en los demás dispositivos con la app abierta. Tarjeta «Stock bajo» en Panel y etiqueta en Inventario.
+  - **Contraseña de administrador**: inventario, estanterías, entradas y ajustes solo se modifican con contraseña; ver y registrar salidas no la requiere. Se valida en la base de datos (RLS + cabecera , hash bcrypt en ), no solo en pantalla. Se crea la primera vez que alguien pulsa «Desbloquear» y se cambia en Ajustes → Administrador. Si se olvida:  en Supabase.
+  - **Precio** por producto (), editable en el formulario del producto y visible para todos en Inventario.
+
 ## Pendiente / siguiente
-1. **Ejecutar `supabase/schema.sql` en Supabase → SQL Editor** (lo hace el usuario). Sin esto la app muestra error de base de datos.
+1. **Ejecutar  en Supabase → SQL Editor** (lo hace el usuario). Sin esto no se puede desbloquear la edición. ( contiene todo, para una instalación desde cero.)
 2. Probar la app en un Android y un iPhone reales; nada se ha probado en uso (solo se verificó que el build de GitHub Actions termina en éxito).
-3. Push real con la app cerrada: hoy las notificaciones son locales (1 aviso diario con la app abierta/instalada). Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
-4. Seguridad: no hay login; cualquiera con el enlace puede ver y editar. Opciones: PIN de admin o Supabase Auth + políticas RLS más estrictas.
-5. Ideas: editar/anular salidas, exportar a Excel, alertas de stock mínimo.
+3. Push real con la app cerrada: hoy las notificaciones (vencimiento y stock bajo) son locales, requieren la app abierta o en segundo plano. Para push de verdad hace falta Web Push con VAPID + una Edge Function / cron en Supabase.
+4. Seguridad: editar exige contraseña de admin; ver datos y registrar salidas sigue abierto a quien tenga el enlace.
+5. Ideas: editar/anular salidas, exportar a Excel, stock mínimo distinto por producto.
 
 ## Notas técnicas
 - Archivos clave: `src/App.jsx` (estado y tabs), `src/components/*` (pestañas), `src/utils.js` (FEFO, NFC, fechas), `src/receipt.js` (PDF/PNG), `src/notify.js` (alertas), `vite.config.js` (manifest PWA, base `/inventariodavid/`).

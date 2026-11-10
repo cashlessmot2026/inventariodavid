@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
-import { supabase } from '../supabase.js'
-import { expiryClass, fmtDate, num, today } from '../utils.js'
+import { expiryClass, money, num, today } from '../utils.js'
 import NfcButton from './NfcButton.jsx'
 import { nfcSupported, tagUrl, writeNfcUrl } from '../utils.js'
 
 const UNITS = ['unidades', 'ml', 'mg', 'g', 'tabletas', 'cápsulas', 'ampollas', 'frascos', 'cajas']
-const EMPTY = { name: '', unit: 'unidades', nfc_code: '', shelf_id: '', space: '', notes: '' }
+const EMPTY = { name: '', unit: 'unidades', nfc_code: '', shelf_id: '', space: '', notes: '', price: '' }
 
-export default function Inventory({ products, batches, shelves, settings, load, say }) {
+export default function Inventory({ products, batches, shelves, settings, load, say, admin, low }) {
+  const can = admin.unlocked
+  const db = admin.db
+  const lowIds = new Set(low.map((p) => p.id))
   const [q, setQ] = useState('')
   const [form, setForm] = useState(null) // producto en edición/creación
   const [open, setOpen] = useState(null) // producto con lotes desplegados
@@ -24,17 +26,20 @@ export default function Inventory({ products, batches, shelves, settings, load, 
 
   const save = async () => {
     if (!form.name.trim()) return say('Falta el nombre')
+    const noPrice = form.price === '' || form.price == null
+    if (!noPrice && !(Number(form.price) >= 0)) return say('Precio inválido')
     const row = {
       name: form.name.trim(),
       unit: form.unit.trim() || 'unidades',
       nfc_code: form.nfc_code.trim() || null,
       shelf_id: form.shelf_id || null,
       space: form.shelf_id && form.space ? Number(form.space) : null,
-      notes: form.notes || null
+      notes: form.notes || null,
+      price: noPrice ? null : Number(form.price)
     }
     const { error } = form.id
-      ? await supabase.from('products').update(row).eq('id', form.id)
-      : await supabase.from('products').insert(row)
+      ? await db.from('products').update(row).eq('id', form.id)
+      : await db.from('products').insert(row)
     if (error) return say(error.message.includes('nfc_code') ? 'Ese tag NFC ya está asignado' : error.message)
     setForm(null)
     load()
@@ -42,14 +47,14 @@ export default function Inventory({ products, batches, shelves, settings, load, 
 
   const del = async (p) => {
     if (!confirm(`¿Eliminar ${p.name} y todos sus lotes?`)) return
-    const { error } = await supabase.from('products').delete().eq('id', p.id)
+    const { error } = await db.from('products').delete().eq('id', p.id)
     if (error) return say(error.message)
     load()
   }
 
   const addBatch = async (pid) => {
     if (!nb.lot.trim() || !nb.expiry || !(Number(nb.qty) > 0)) return say('Completa lote, vencimiento y cantidad')
-    const { error } = await supabase.rpc('register_entry', {
+    const { error } = await db.rpc('register_entry', {
       p_product: pid,
       p_lot: nb.lot.trim(),
       p_expiry: nb.expiry,
@@ -64,14 +69,15 @@ export default function Inventory({ products, batches, shelves, settings, load, 
   }
 
   const editBatch = async (b, patch) => {
-    const { error } = await supabase.from('batches').update(patch).eq('id', b.id)
+    const { error } = await db.from('batches').update(patch).eq('id', b.id)
     if (error) say(error.message)
     load()
   }
 
   const delBatch = async (b) => {
     if (!confirm(`¿Eliminar lote ${b.lot}?`)) return
-    await supabase.from('batches').delete().eq('id', b.id)
+    const { error } = await db.from('batches').delete().eq('id', b.id)
+    if (error) say(error.message)
     load()
   }
 
@@ -82,12 +88,18 @@ export default function Inventory({ products, batches, shelves, settings, load, 
       <h2>Inventario</h2>
       <div className="row">
         <input placeholder="🔍 Buscar producto, código o estantería" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn primary" onClick={() => setForm({ ...EMPTY })}>
-          + Producto
-        </button>
+        {can ? (
+          <button className="btn primary" onClick={() => setForm({ ...EMPTY })}>
+            + Producto
+          </button>
+        ) : (
+          <button className="btn" onClick={admin.ask}>
+            🔒 Editar
+          </button>
+        )}
       </div>
 
-      {form && (
+      {form && can && (
         <div className="card">
           <h3>{form.id ? 'Editar producto' : 'Nuevo producto'}</h3>
           <input placeholder="Nombre / referencia *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -98,6 +110,15 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                 <option key={u} value={u} />
               ))}
             </datalist>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              placeholder="Precio $"
+              value={form.price ?? ''}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+            />
           </div>
           <div className="row mt">
             <input placeholder="Código NFC" value={form.nfc_code || ''} onChange={(e) => setForm({ ...form, nfc_code: e.target.value })} />
@@ -159,12 +180,14 @@ export default function Inventory({ products, batches, shelves, settings, load, 
             <div className="row between" onClick={() => setOpen(open === p.id ? null : p.id)}>
               <div>
                 <strong>{p.name}</strong>
+                {lowIds.has(p.id) && <span className="pill bad" style={{ marginLeft: 6 }}>Stock bajo</span>}
                 <div className="muted">📍 {location(p)}</div>
                 {p.nfc_code && <div className="muted">NFC: {p.nfc_code}</div>}
               </div>
               <div className="stock">
                 {num(total(p.id))}
                 <small> {p.unit}</small>
+                {p.price != null && <div className="price">{money(p.price)}</div>}
               </div>
             </div>
             {open === p.id && (
@@ -182,11 +205,12 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                     {bs.map((b) => (
                       <tr key={b.id}>
                         <td>
-                          <input defaultValue={b.lot} onBlur={(e) => e.target.value !== b.lot && editBatch(b, { lot: e.target.value })} />
+                          <input disabled={!can} defaultValue={b.lot} onBlur={(e) => e.target.value !== b.lot && editBatch(b, { lot: e.target.value })} />
                         </td>
                         <td>
                           <input
                             type="date"
+                            disabled={!can}
                             className={'pill-in ' + expiryClass(b.expiry, settings.alert_months)}
                             defaultValue={b.expiry}
                             onBlur={(e) => e.target.value && e.target.value !== b.expiry && editBatch(b, { expiry: e.target.value })}
@@ -195,6 +219,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                         <td>
                           <input
                             type="number"
+                            disabled={!can}
                             step="any"
                             min="0"
                             defaultValue={b.qty}
@@ -202,14 +227,23 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                           />
                         </td>
                         <td>
-                          <button className="btn sm danger" onClick={() => delBatch(b)}>
-                            ✕
-                          </button>
+                          {can && (
+                            <button className="btn sm danger" onClick={() => delBatch(b)}>
+                              ✕
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                {!bs.length && <p className="muted">Sin lotes registrados.</p>}
+                {!can && (
+                  <button className="btn mt block" onClick={admin.ask}>
+                    🔒 Desbloquear para modificar
+                  </button>
+                )}
+                {can && (<>
                 <div className="row mt">
                   <input placeholder="Lote" value={nb.lot} onChange={(e) => setNb({ ...nb, lot: e.target.value })} />
                   <input type="date" min={today()} value={nb.expiry} onChange={(e) => setNb({ ...nb, expiry: e.target.value })} />
@@ -230,6 +264,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
                     Eliminar
                   </button>
                 </div>
+                </>)}
               </>
             )}
           </div>

@@ -21,7 +21,7 @@ function Bars({ rows, fmt = num }) {
   )
 }
 
-export default function Panel({ expiring, settings }) {
+export default function Panel({ expiring, settings, low }) {
   const [items, setItems] = useState([])
 
   useEffect(() => {
@@ -57,6 +57,19 @@ export default function Panel({ expiring, settings }) {
   return (
     <section>
       <h2>Panel y analítica</h2>
+
+      <div className="card">
+        <h3>⚠ Stock bajo (≤ {num(settings.min_stock)})</h3>
+        {low.length === 0 && <p className="muted">Ningún producto en el mínimo.</p>}
+        {low.map((p) => (
+          <div className="row between line" key={p.id}>
+            <span>{p.name}</span>
+            <span className="pill bad">
+              {num(p.total)} {p.unit}
+            </span>
+          </div>
+        ))}
+      </div>
 
       <div className="card">
         <h3>⚠ Por vencer (≤ {settings.alert_months} meses)</h3>

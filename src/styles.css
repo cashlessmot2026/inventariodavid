@@ -73,3 +73,8 @@ label { font-size: 13px; color: var(--muted); white-space: nowrap; }
 
 .toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 99px; z-index: 10; max-width: 90vw; font-size: 14px; }
 code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+
+.price { font-size: 14px; font-weight: 600; color: var(--blue-d); }
+input:disabled { background: #f4f8fb; color: var(--ink); opacity: 1; -webkit-text-fill-color: var(--ink); }
+.modal { position: fixed; inset: 0; background: rgba(11, 15, 20, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+.modal .card { width: 100%; max-width: 380px; margin: 0; }

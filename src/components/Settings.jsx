@@ -1,14 +1,21 @@
 import React, { useState } from 'react'
-import { supabase } from '../supabase.js'
-import { askPermission, notifSupported } from '../notify.js'
+import { supabase, hashPass } from '../supabase.js'
+import { askPermission, notifSupported, setVoice, speak, voiceOn } from '../notify.js'
 import { isIOS, isStandalone, nfcSupported } from '../utils.js'
 
-export default function Settings({ settings, load, say }) {
+export default function Settings({ settings, load, say, admin }) {
   const [months, setMonths] = useState(settings.alert_months)
+  const [minStock, setMinStock] = useState(settings.min_stock)
   const [perm, setPerm] = useState(notifSupported() ? Notification.permission : 'unsupported')
+  const [voice, setVoiceState] = useState(voiceOn())
+  const [pw, setPw] = useState(null) // formulario de cambio de contraseña
 
   const save = async () => {
-    const { error } = await supabase.from('settings').upsert({ id: 1, alert_months: Number(months) })
+    if (!admin.unlocked) return admin.ask()
+    if (!(Number(minStock) >= 0)) return say('Stock mínimo inválido')
+    const { error } = await admin.db
+      .from('settings')
+      .upsert({ id: 1, alert_months: Number(months), min_stock: Number(minStock) })
     if (error) return say(error.message)
     say('Guardado')
     load()
@@ -20,20 +27,78 @@ export default function Settings({ settings, load, say }) {
     if (r === 'granted') say('Notificaciones activadas')
   }
 
+  const toggleVoice = (on) => {
+    setVoice(on)
+    setVoiceState(on)
+    if (on) speak('Aviso por voz activado')
+  }
+
+  const changePass = async () => {
+    if (pw.next.length < 4) return say('La nueva contraseña debe tener mínimo 4 caracteres')
+    if (pw.next !== pw.again) return say('Las contraseñas no coinciden')
+    const [oldT, newT] = await Promise.all([hashPass(pw.old), hashPass(pw.next)])
+    const { error } = await supabase.rpc('admin_set_password', { p_old: oldT, p_new: newT })
+    if (error) return say(error.message)
+    admin.setToken(newT)
+    setPw(null)
+    say('Contraseña cambiada')
+  }
+
   return (
     <section>
       <h2>Ajustes</h2>
+
       <div className="card">
-        <h3>Alerta de vencimiento</h3>
+        <h3>🔒 Administrador</h3>
+        <p className="muted">
+          Para modificar inventario, estanterías y ajustes se necesita la contraseña. Ver el inventario y registrar salidas no la requiere.
+        </p>
+        {!admin.unlocked ? (
+          <button className="btn primary" onClick={admin.ask}>
+            Desbloquear / crear contraseña
+          </button>
+        ) : (
+          <>
+            <p className="muted">Estado: edición desbloqueada en este dispositivo (se bloquea al cerrar la app).</p>
+            <div className="row">
+              <button className="btn" onClick={() => setPw(pw ? null : { old: '', next: '', again: '' })}>
+                Cambiar contraseña
+              </button>
+              <button className="btn" onClick={admin.lock}>
+                Bloquear ahora
+              </button>
+            </div>
+            {pw && (
+              <>
+                <input className="mt" type="password" placeholder="Contraseña actual" value={pw.old} onChange={(e) => setPw({ ...pw, old: e.target.value })} />
+                <input className="mt" type="password" placeholder="Nueva contraseña" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
+                <input className="mt" type="password" placeholder="Repetir nueva contraseña" value={pw.again} onChange={(e) => setPw({ ...pw, again: e.target.value })} />
+                <button className="btn primary mt" onClick={changePass}>
+                  Guardar contraseña
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>Alertas</h3>
         <div className="row">
-          <label>Avisar cuando falten</label>
+          <label>Vencimiento: avisar cuando falten</label>
           <input type="number" min="0" step="0.5" value={months} onChange={(e) => setMonths(e.target.value)} />
           <label>meses</label>
         </div>
+        <div className="row mt">
+          <label>Stock mínimo: avisar al llegar a</label>
+          <input type="number" min="0" step="any" value={minStock} onChange={(e) => setMinStock(e.target.value)} />
+          <label>unidades</label>
+        </div>
         <button className="btn primary mt" onClick={save}>
-          Guardar
+          {admin.unlocked ? 'Guardar' : '🔒 Guardar'}
         </button>
       </div>
+
       <div className="card">
         <h3>Notificaciones</h3>
         <p className="muted">Estado: {perm === 'granted' ? 'activadas' : perm === 'denied' ? 'bloqueadas en el navegador' : perm === 'unsupported' ? 'no soportadas' : 'sin activar'}</p>
@@ -43,8 +108,16 @@ export default function Settings({ settings, load, say }) {
           </button>
         )}
         {isIOS() && !isStandalone() && <p className="err">En iPhone las notificaciones solo funcionan con la app instalada (Compartir → Añadir a pantalla de inicio, iOS 16.4+).</p>}
-        <p className="muted mt">Se envía un aviso diario con los lotes por vencer cuando la app está abierta o instalada.</p>
+        <label className="row mt" style={{ whiteSpace: 'normal' }}>
+          <input type="checkbox" style={{ width: 'auto' }} checked={voice} onChange={(e) => toggleVoice(e.target.checked)} />
+          Aviso por voz de stock bajo («Hay 8 unidades de …»)
+        </label>
+        <p className="muted mt">
+          Cuando un producto llega al stock mínimo se muestra una notificación con su nombre y se dice en voz alta. También se envía un aviso
+          diario con los lotes por vencer. Los avisos llegan con la app abierta o en segundo plano.
+        </p>
       </div>
+
       <div className="card">
         <h3>NFC</h3>
         {isIOS() && (

@@ -1,4 +1,4 @@
-# Inventario de medicamentos (PWA)
+# Urueta Farmacia · inventario de medicamentos (PWA)
 
 React + Vite + Supabase. Control de inventario por lote/vencimiento (FEFO) con tags NFC, salidas con factura, PDF/imagen, estanterías, analítica y alertas de vencimiento.
 

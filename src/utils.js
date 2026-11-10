@@ -23,6 +23,8 @@ export const expiryClass = (expiry, months) => {
   return 'ok'
 }
 
+export const money = (n) => '$ ' + Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 })
+
 export const num = (n) => Number(n).toLocaleString('es-CO', { maximumFractionDigits: 2 })
 
 // Lotes con stock, el que vence primero va primero (FEFO)
