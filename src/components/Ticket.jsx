@@ -9,7 +9,7 @@ export function Ticket({ mov }) {
   return (
     <div className="ticket">
       <div className="tk-head">
-        <div className="tk-logo">💊</div>
+        <img className="tk-logo" src={import.meta.env.BASE_URL + 'logo.png'} alt="" />
         <b>URUETA FARMACIA</b>
         <span>{isIn ? 'Entrada de inventario' : 'Salida de inventario'}</span>
       </div>

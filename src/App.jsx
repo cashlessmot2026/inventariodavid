@@ -46,6 +46,7 @@ export default function App() {
   const [token, setTokenState] = useState(savedToken)
   const [asking, setAsking] = useState(() => location.hash === '#admin' && !savedToken())
   const [tab, setTab] = useState(() => (savedToken() && !pendingTag ? 'panel' : 'exit'))
+  const [splash, setSplash] = useState(true)
   const [perm, setPerm] = useState(() => (notifSupported() ? Notification.permission : 'unsupported'))
   const taps = useRef({ n: 0, t: 0 })
 
@@ -191,6 +192,13 @@ export default function App() {
     if (r === 'granted') say('Avisos activados')
   }
 
+  // Pantalla de inicio con el logo: se muestra un instante y se desvanece al cargar los datos
+  useEffect(() => {
+    if (!loaded && !error) return
+    const t = setTimeout(() => setSplash(false), 900)
+    return () => clearTimeout(t)
+  }, [loaded, error])
+
   const clearTag = useCallback(() => {
     setPendingTag(null)
     history.replaceState(null, '', location.pathname)
@@ -203,7 +211,7 @@ export default function App() {
       <div className="top">
         <header>
           <div className="brand" onClick={secretTap}>
-            <div className="logo">💊</div>
+            <img className="logo" src={import.meta.env.BASE_URL + 'logo-mark.png'} alt="Urueta" />
             <div>
               <h1>Urueta Farmacia</h1>
               <small>{isAdmin ? 'Panel de administración' : 'Inventario y salidas'}</small>
@@ -279,6 +287,11 @@ export default function App() {
         />
       )}
       {toast && <div className="toast">{toast}</div>}
+      {splash && (
+        <div className={'splash' + (loaded || error ? ' out' : '')}>
+          <img src={import.meta.env.BASE_URL + 'logo.png'} alt="Urueta Dermatólogo" />
+        </div>
+      )}
     </div>
   )
 }

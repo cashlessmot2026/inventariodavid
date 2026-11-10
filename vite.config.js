@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const base = '/inventariodavid/'
+const base = '/'
 
 export default defineConfig({
   base,
@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['favicon.png', 'logo.png', 'logo-mark.png'],
       manifest: {
         name: 'Urueta Farmacia',
         short_name: 'Urueta Farmacia',
