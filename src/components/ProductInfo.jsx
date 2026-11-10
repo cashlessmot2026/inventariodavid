@@ -21,7 +21,7 @@ export default function ProductInfo({ p, total, min, location, onClick }) {
           <small>{p.unit}</small>
         </div>
         <span className={'state ' + st}>{STATUS_LABEL[st]}</span>
-        {p.price != null && <div className="price">{money(p.price)}</div>}
+        <div className={'price' + (p.price == null ? ' none' : '')}>{p.price != null ? money(p.price) : 'Sin precio'}</div>
       </div>
     </div>
   )

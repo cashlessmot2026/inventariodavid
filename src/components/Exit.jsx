@@ -3,6 +3,7 @@ import { supabase } from '../supabase.js'
 import { allocateFefo, fmtDate, expiryClass, num, sortedBatches } from '../utils.js'
 import { downloadPdf, downloadPng } from '../receipt.js'
 import NfcButton from './NfcButton.jsx'
+import RecentExits from './RecentExits.jsx'
 
 export default function Exit({ products, batches, settings, load, say, pendingTag, clearTag }) {
   const [lines, setLines] = useState(() => {
@@ -179,7 +180,9 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
 
       {done && (
         <div className="card ok-card">
-          <strong>✔ Salida registrada (factura {done.mov.invoice})</strong>
+          <strong>
+            ✔ Salida {done.mov.number != null ? `N° ${done.mov.number} ` : ''}registrada (factura {done.mov.invoice})
+          </strong>
           <div className="row mt">
             <button className="btn" onClick={() => downloadPdf(done.mov, done.items)}>
               PDF
@@ -190,6 +193,8 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
           </div>
         </div>
       )}
+
+      <RecentExits say={say} refresh={done?.mov?.id} />
     </section>
   )
 }

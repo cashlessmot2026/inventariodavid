@@ -20,7 +20,7 @@ const PUBLIC_TABS = [
 const ADMIN_TABS = [
   ['panel', '📊 Panel'],
   ['exit', '📤 Salida'],
-  ['inv', '📦 Inventario'],
+  ['inv', '📦 Productos'],
   ['shelves', '🗄 Estanterías'],
   ['hist', '🧾 Historial'],
   ['cfg', '⚙ Ajustes']

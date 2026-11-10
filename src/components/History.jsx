@@ -23,6 +23,7 @@ export default function History({ say }) {
     const t = q.toLowerCase()
     return (
       !t ||
+      String(m.number ?? '') === t ||
       (m.invoice || '').toLowerCase().includes(t) ||
       (m.customer || '').toLowerCase().includes(t) ||
       m.movement_items.some((i) => i.product_name.toLowerCase().includes(t) || (i.lot || '').toLowerCase().includes(t))
@@ -46,12 +47,13 @@ export default function History({ say }) {
           ⬇ Excel (CSV)
         </button>
       </div>
-      <input placeholder="🔍 Factura, cliente, producto o lote" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="search mt" placeholder="🔍 N° de salida, factura, cliente, producto o lote" value={q} onChange={(e) => setQ(e.target.value)} />
       {list.map((m) => (
         <div className="card" key={m.id}>
           <div className="row between">
             <strong>
-              {m.type === 'in' ? '⬆ Entrada' : '⬇ Salida'} · Factura {m.invoice || '—'}
+              {m.type === 'in' ? '⬆ Entrada' : '⬇ Salida'}
+              {m.number != null ? ` N° ${m.number}` : ''} · Factura {m.invoice || '—'}
             </strong>
             <span className="muted">{fmtDateTime(m.created_at)}</span>
           </div>

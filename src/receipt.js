@@ -27,6 +27,7 @@ export function receiptCanvas(mov, items) {
     g.fillText(String(v || '—'), 210, y)
     y += 36
   }
+  if (mov.number != null) line('Salida N°:', mov.number)
   line('Factura:', mov.invoice)
   line(mov.type === 'in' ? 'Proveedor:' : 'Cliente:', mov.customer)
   line('Fecha:', fmtDateTime(mov.created_at))

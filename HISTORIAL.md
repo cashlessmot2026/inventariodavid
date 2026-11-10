@@ -41,8 +41,13 @@ PWA instalable (Android e iOS), React, colores blanco / azul claro / negro, para
   - **Acceso oculto al admin:** 5 toques seguidos sobre el logo o abrir la app con `#admin` al final de la dirección. Usuario `admin` (se comprueba en la app); la contraseña la valida la base de datos. No se guardó ninguna contraseña en el repo (es público): en el primer ingreso, la contraseña que se escriba queda guardada.
   - Pestañas arriba (fijas), botones redondeados con sombra, tarjetas con animación, Panel tipo dashboard con indicadores (productos, disponibles, stock bajo, agotados, por vencer, valor del inventario).
   - Productos con `category`, `brand`, `reference` (`supabase/actualizacion_v4.sql`). Archivos nuevos: `Stock.jsx` (vista pública), `ProductInfo.jsx`, `Unlock.jsx` (login).
+- 2026-11-09 (v5):
+  - Pestaña Salida (pública y admin): buscador de salidas por N° de salida, factura, cliente y fecha; debajo, historial de las últimas 10 salidas con detalle y PDF/imagen (`RecentExits.jsx`).
+  - Número consecutivo de salida (`movements.number`, `supabase/actualizacion_v5.sql`); aparece en el comprobante y en Historial.
+  - Admin: la pestaña Inventario ahora se llama **Productos**; el precio se muestra siempre («Sin precio» si falta), es la primera casilla del formulario y se puede cambiar rápido al abrir la tarjeta del producto.
 
 ## Pendiente / siguiente
+00. **Ejecutar `supabase/actualizacion_v5.sql`** para tener número de salida. (La v3 ya está ejecutada y ya existe contraseña de admin, verificado el 2026-11-09.)
 0. **Ejecutar `supabase/actualizacion_v4.sql`** (después de la v3) para poder guardar categoría, marca y referencia.
 1. **Ejecutar `supabase/actualizacion_v3.sql` en Supabase → SQL Editor** (lo hace el usuario). Sin esto no se puede desbloquear la edición. (`supabase/schema.sql` contiene todo, para una instalación desde cero.)
 2. Probar la app en un Android y un iPhone reales; nada se ha probado en uso (solo se verificó que el build de GitHub Actions termina en éxito).

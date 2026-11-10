@@ -189,3 +189,7 @@ code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+.price.none { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+.chip.num { background: var(--ink); color: #fff; margin-right: 4px; }
+.exits { margin-top: 28px; padding-top: 6px; border-top: 2px dashed var(--line); }

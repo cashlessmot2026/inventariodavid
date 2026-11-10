@@ -68,6 +68,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
     const { error } = form.id ? await db.from('products').update(row).eq('id', form.id) : await db.from('products').insert(row)
     if (error) {
       if (error.message.includes('nfc_code')) return say('Ese tag NFC ya está asignado')
+      if (/price/.test(error.message)) return say('Falta ejecutar supabase/actualizacion_v3.sql en Supabase')
       if (/category|brand|reference/.test(error.message)) return say('Falta ejecutar supabase/actualizacion_v4.sql en Supabase')
       return say(error.message)
     }
@@ -80,6 +81,17 @@ export default function Inventory({ products, batches, shelves, settings, load, 
     if (!confirm(`¿Eliminar ${p.name} y todos sus lotes?`)) return
     const { error } = await db.from('products').delete().eq('id', p.id)
     if (error) return say(error.message)
+    load()
+  }
+
+  // Cambio rápido de precio desde la tarjeta del producto
+  const savePrice = async (p, value) => {
+    const v = value === '' ? null : Number(value)
+    if (v !== null && !(v >= 0)) return say('Precio inválido')
+    if (v === (p.price == null ? null : Number(p.price))) return
+    const { error } = await db.from('products').update({ price: v }).eq('id', p.id)
+    if (error) return say(/price/.test(error.message) ? 'Falta ejecutar supabase/actualizacion_v3.sql en Supabase' : error.message)
+    say('Precio actualizado')
     load()
   }
 
@@ -131,7 +143,7 @@ export default function Inventory({ products, batches, shelves, settings, load, 
   return (
     <section>
       <div className="row between">
-        <h2>Inventario</h2>
+        <h2>Productos</h2>
         <button className="btn primary" onClick={() => setForm(form ? null : { ...EMPTY })}>
           {form ? 'Cerrar' : '+ Nuevo producto'}
         </button>
@@ -146,6 +158,10 @@ export default function Inventory({ products, batches, shelves, settings, load, 
           </label>
           <div className="grid2 mt">
             <label className="field">
+              <span>💲 Precio de venta</span>
+              <input type="number" min="0" step="any" inputMode="decimal" placeholder="0" value={form.price ?? ''} onChange={set('price')} />
+            </label>
+            <label className="field">
               <span>Referencia</span>
               <input value={form.reference || ''} onChange={set('reference')} />
             </label>
@@ -156,10 +172,6 @@ export default function Inventory({ products, batches, shelves, settings, load, 
             <label className="field">
               <span>Categoría</span>
               <input list="cats" value={form.category || ''} onChange={set('category')} />
-            </label>
-            <label className="field">
-              <span>Precio $</span>
-              <input type="number" min="0" step="any" inputMode="decimal" value={form.price ?? ''} onChange={set('price')} />
             </label>
             <label className="field">
               <span>Unidad de medida</span>
@@ -255,6 +267,20 @@ export default function Inventory({ products, batches, shelves, settings, load, 
             <ProductInfo p={p} total={total(p)} min={min} location={location(p)} onClick={() => setOpen(isOpen ? null : p.id)} />
             {isOpen && (
               <div className="detail">
+                <div className="row">
+                  <label>💲 Precio</label>
+                  <input
+                    key={p.price ?? 'x'}
+                    type="number"
+                    min="0"
+                    step="any"
+                    inputMode="decimal"
+                    placeholder="Sin precio"
+                    defaultValue={p.price ?? ''}
+                    onBlur={(e) => savePrice(p, e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+                  />
+                </div>
                 {p.nfc_code && <div className="muted">NFC: {p.nfc_code}</div>}
                 {p.notes && <div className="muted">Notas: {p.notes}</div>}
                 {bs.length > 0 ? (
