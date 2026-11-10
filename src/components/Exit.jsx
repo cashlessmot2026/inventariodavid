@@ -6,6 +6,14 @@ import NfcButton from './NfcButton.jsx'
 import RecentExits from './RecentExits.jsx'
 import TicketModal from './Ticket.jsx'
 
+const MAX_FOUND = 8
+// minúsculas y sin tildes, para que «acetaminofen» encuentre «Acetaminofén»
+const norm = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+
 export default function Exit({ products, batches, settings, load, say, pendingTag, clearTag }) {
   const [lines, setLines] = useState(() => {
     try {
@@ -18,6 +26,7 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
   const [customer, setCustomer] = useState('')
   const [notes, setNotes] = useState('')
   const [manual, setManual] = useState('')
+  const [find, setFind] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(null)
   const [ticket, setTicket] = useState(false)
@@ -39,6 +48,24 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
   const onCode = (code) => {
     const p = products.find((x) => x.nfc_code === String(code).trim())
     if (!p) return say(`Tag sin producto asignado: ${code}`)
+    addProduct(p)
+  }
+
+  // Búsqueda manual: todas las palabras escritas deben aparecer en nombre, categoría, marca o referencia
+  const words = norm(find).split(/\s+/).filter(Boolean)
+  const found = useMemo(() => {
+    if (!words.length) return []
+    return products
+      .filter((p) => {
+        const hay = norm([p.name, p.category, p.brand, p.reference].filter(Boolean).join(' '))
+        return words.every((w) => hay.includes(w))
+      })
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), 'es'))
+  }, [find, products])
+  const stockOf = (pid) => batchesOf(pid).reduce((s, b) => s + Number(b.qty || 0), 0)
+  const minStock = Number(settings?.min_stock ?? 8)
+  const pick = (p) => {
+    if (stockOf(p.id) <= 0) return say(`${p.name} está agotado`)
     addProduct(p)
   }
 
@@ -106,14 +133,43 @@ export default function Exit({ products, batches, settings, load, say, pendingTa
             Agregar
           </button>
         </div>
-        <select className="mt" value="" onChange={(e) => e.target.value && addProduct(byId[e.target.value])}>
-          <option value="">…o elegir producto de la lista</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+        <div className="group-h">Salida manual</div>
+        <input
+          className="search"
+          type="search"
+          placeholder="🔍 Buscar producto: nombre, categoría o marca"
+          value={find}
+          onChange={(e) => setFind(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && found.length === 1 && pick(found[0])}
+        />
+        {words.length > 0 && found.length === 0 && <p className="muted mt">Ningún producto coincide con la búsqueda.</p>}
+        {found.slice(0, MAX_FOUND).map((p) => {
+          const stock = stockOf(p.id)
+          const inCart = lines.find((l) => l.productId === p.id)
+          return (
+            <div className="found" key={p.id}>
+              <div className="found-info">
+                <strong>{p.name}</strong>
+                <div className="chips">
+                  {p.category && <span className="chip">{p.category}</span>}
+                  {p.brand && <span className="chip ghost">{p.brand}</span>}
+                  {p.reference && <span className="chip ghost">Ref. {p.reference}</span>}
+                </div>
+                <span className={'pill ' + (stock <= 0 ? 'bad' : stock <= minStock ? 'warn' : 'ok')}>
+                  {stock <= 0 ? 'Agotado' : `${num(stock)} ${p.unit || ''} disponibles`}
+                </span>
+              </div>
+              <button className="btn primary sm" disabled={stock <= 0} onClick={() => pick(p)}>
+                {inCart ? `+1 (${num(inCart.qty)})` : 'Dar salida'}
+              </button>
+            </div>
+          )
+        })}
+        {found.length > MAX_FOUND && (
+          <p className="muted mt">
+            Hay {found.length - MAX_FOUND} producto(s) más: escribe algo más para afinar la búsqueda.
+          </p>
+        )}
       </div>
 
       {plan.map((x) => (

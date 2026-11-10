@@ -95,6 +95,14 @@ label { font-size: 13px; color: var(--muted); white-space: nowrap; }
 .field > span { display: block; margin: 0 0 4px 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .search { border-radius: 999px; padding-left: 16px; box-shadow: var(--sh-sm); border-color: transparent; }
+.group-h + .search { margin-top: 8px; }
+
+/* Resultados del buscador de producto para la salida manual */
+.found { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 2px; border-top: 1px solid var(--line); }
+.search + .found { border-top: 0; margin-top: 6px; }
+.found-info { min-width: 0; }
+.found-info strong { display: block; overflow-wrap: anywhere; }
+.found .btn { flex: 0 0 auto; }
 
 /* ===== Botones redondeados con sombra ===== */
 .btn {
